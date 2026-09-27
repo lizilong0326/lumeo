@@ -28,6 +28,8 @@ describe("background content script injection", () => {
       "overlayModule",
       "subtitleOverlayModule",
       "captionOrchestrator",
+      "thinkingOrb",
+      "voiceGlow",
       "localPanel",
       "localPlayback",
       "fullPrep",

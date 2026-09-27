@@ -33,16 +33,45 @@
 
     const progress = document.createElement("div");
     progress.className = "yimu-panel-progress";
+    const progressLabelRow = document.createElement("div");
+    progressLabelRow.className = "yimu-panel-progress-row";
+    const orbHost = document.createElement("span");
+    orbHost.className = "yimu-panel-progress-orb";
+    orbHost.setAttribute("aria-hidden", "true");
+    orbHost.hidden = true;
     const progressLabel = document.createElement("span");
     progressLabel.className = "yimu-panel-progress-label";
     progressLabel.textContent = "正在连接…";
     const bar = document.createElement("progress");
     bar.max = 100;
     bar.setAttribute("aria-label", "译幕准备进度");
-    progress.append(progressLabel, bar);
+    progressLabelRow.append(orbHost, progressLabel);
+    progress.append(progressLabelRow, bar);
 
     let persistent = false;
     let pointer = null;
+    let orbTimer = null;
+    let orbController = null;
+    let orbWanted = true;
+    let orbState = "connecting";
+
+    function stopOrb() {
+      clearTimeout(orbTimer);
+      orbTimer = null;
+      orbController?.destroy();
+      orbController = null;
+      orbHost.hidden = true;
+    }
+
+    function scheduleOrb() {
+      if (!orbWanted || panel.hidden || orbTimer || orbController || !window.YimuThinkingOrb) return;
+      orbTimer = setTimeout(() => {
+        orbTimer = null;
+        if (!orbWanted || panel.hidden) return;
+        orbController = window.YimuThinkingOrb.mount(orbHost, orbState);
+        orbHost.hidden = !orbController;
+      }, 2000);
+    }
 
     function position(left, top) {
       const bounds = panel.getBoundingClientRect();
@@ -59,6 +88,7 @@
       persistent = keepClosed;
       panel.hidden = true;
       restoreButton.hidden = false;
+      stopOrb();
     }
 
     function show({ force = false } = {}) {
@@ -66,6 +96,7 @@
       persistent = false;
       panel.hidden = false;
       restoreButton.hidden = true;
+      scheduleOrb();
     }
 
     closeButton.addEventListener("click", () => {
@@ -112,6 +143,7 @@
       const saved = JSON.parse(sessionStorage.getItem(POSITION_KEY) || "null");
       if (Number.isFinite(saved?.left) && Number.isFinite(saved?.top)) position(saved.left, saved.top);
     } catch { /* Ignore malformed or inaccessible saved positions. */ }
+    scheduleOrb();
 
     return {
       progress,
@@ -124,9 +156,20 @@
         const label = PHASES[phase] || "正在准备";
         const total = Number(data.total);
         const completed = Number(data.completed);
+        orbState = phase === "inspecting" ? "searching" : phase === "downloading" ? "connecting" : "working";
+        orbWanted = phase !== "ready" && phase !== "failed" && !(total > 0 && Number.isFinite(completed));
+        if (orbWanted) {
+          orbController?.setState(orbState);
+          scheduleOrb();
+        } else {
+          stopOrb();
+        }
         if (phase === "ready") {
           bar.value = 100;
           progressLabel.textContent = "准备完成 · 100%";
+        } else if (phase === "failed") {
+          bar.removeAttribute("value");
+          progressLabel.textContent = label;
         } else if (total > 0 && Number.isFinite(completed)) {
           const count = Math.min(total, Math.max(0, completed));
           const percent = Math.round(count / total * 100);
@@ -138,6 +181,7 @@
         }
       },
       destroy() {
+        stopOrb();
         restoreButton.remove();
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", onEnd);

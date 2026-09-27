@@ -235,6 +235,9 @@ describe("YouTube 原页本地配音", () => {
       ] }] },
     };
     const audios = [];
+    const stream = { getAudioTracks: () => [{ readyState: "live" }] };
+    const glowController = { setStream: vi.fn(), destroy: vi.fn() };
+    window.YimuVoiceGlow = { prime: vi.fn(), mount: vi.fn(() => glowController) };
     window.Audio = class extends window.EventTarget {
       constructor(src) {
         super();
@@ -247,6 +250,7 @@ describe("YouTube 原页本地配音", () => {
       load() {}
       play() { return Promise.resolve(); }
       pause() {}
+      captureStream() { return stream; }
     };
     window.URL.createObjectURL = vi.fn(() => "blob:voice");
     window.URL.revokeObjectURL = vi.fn();
@@ -265,6 +269,9 @@ describe("YouTube 原页本地配音", () => {
       await vi.waitFor(() => expect(window.document.querySelector(".yimu-panel-actions button")?.disabled).toBe(false));
       window.document.querySelector(".yimu-panel-actions button").click();
       await vi.waitFor(() => expect(audios[0]?.currentTime).toBeCloseTo(15, 1));
+      await vi.waitFor(() => expect(glowController.setStream).toHaveBeenCalledWith(stream));
+      expect(window.YimuVoiceGlow.prime).toHaveBeenCalledOnce();
+      expect(window.document.querySelector(".yimu-voice-glow-host").hidden).toBe(false);
       const subtitle = Array.from(window.document.querySelectorAll("div")).find((node) => node.style.pointerEvents === "none");
       expect(subtitle?.textContent.length).toBeLessThanOrEqual(34);
       expect(subtitle?.textContent).not.toBe(translated);
@@ -272,6 +279,9 @@ describe("YouTube 原页本地配音", () => {
       video.dispatchEvent(new window.Event("seeking"));
       await vi.waitFor(() => expect(audios[0]?.currentTime).toBeCloseTo(25, 1));
       expect(subtitle?.textContent.length).toBeLessThanOrEqual(34);
+      video.dispatchEvent(new window.Event("pause"));
+      expect(glowController.setStream).toHaveBeenCalledWith(null);
+      expect(window.document.querySelector(".yimu-voice-glow-host").hidden).toBe(true);
     } finally {
       dom.window.close();
     }

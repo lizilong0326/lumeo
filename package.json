@@ -5,6 +5,7 @@
   "description": "译幕：YouTube 中文字幕与中文配音扩展的测试工具。",
   "type": "module",
   "scripts": {
+    "build:ui": "esbuild ui/effects.entry.js --bundle --minify --format=iife --platform=browser --target=chrome116 --outfile=ui/effects.bundle.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
@@ -15,7 +16,14 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.1",
+    "esbuild": "^0.28.2",
     "jsdom": "^30.1.0",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "thinking-orbs": "^0.3.2",
+    "voice-glow": "^0.2.1"
   }
 }

@@ -101,6 +101,7 @@
       } catch (error) {
         if (stopped) return;
         ui.controls.show();
+        ui.controls.setProgress({ phase: "failed" });
         ui.status.textContent = `准备失败：${error?.message || String(error)}。请确认本地服务已运行。`;
         onError?.(error);
       }

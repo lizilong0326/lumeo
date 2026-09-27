@@ -2,6 +2,45 @@ import { describe, expect, it, vi } from "vitest";
 import { createSandboxWindow, loadService } from "./helpers/load-service.mjs";
 
 describe("YouTube page task panel controls", () => {
+  it("shows a thinking orb only for sustained unknown-length work and stops it when progress is measured", async () => {
+    const { dom, window } = await createSandboxWindow();
+    const pending = new Map();
+    let nextTimer = 0;
+    window.setTimeout = (callback) => { const id = ++nextTimer; pending.set(id, callback); return id; };
+    window.clearTimeout = (id) => { pending.delete(id); };
+    const mounted = [];
+    const changed = [];
+    const destroyed = vi.fn();
+    window.YimuThinkingOrb = { mount: vi.fn((_, state) => {
+      mounted.push(state);
+      return { setState: (next) => changed.push(next), destroy: destroyed };
+    }) };
+    try {
+      loadService("ui/local-panel.js", window);
+      const panel = window.document.createElement("aside");
+      const header = window.document.createElement("div");
+      panel.append(header);
+      window.document.body.append(panel);
+      const controls = window.YimuPanel.attach(panel, header);
+      panel.append(controls.progress);
+      const orb = controls.progress.querySelector(".yimu-panel-progress-orb");
+      expect(orb.hidden).toBe(true);
+      controls.setProgress({ phase: "inspecting" });
+      expect(mounted).toEqual([]);
+      for (const [id, callback] of pending) { pending.delete(id); callback(); }
+      expect(mounted).toEqual(["searching"]);
+      expect(orb.hidden).toBe(false);
+
+      controls.setProgress({ phase: "downloading" });
+      expect(changed).toEqual(["connecting"]);
+      controls.setProgress({ phase: "speaking", completed: 3, total: 12 });
+      expect(destroyed).toHaveBeenCalledOnce();
+      expect(orb.hidden).toBe(true);
+      expect(pending.size).toBe(0);
+      controls.destroy();
+    } finally { dom.window.close(); }
+  });
+
   it("moves within the viewport, closes until restored, and shows measured phase progress", async () => {
     const { dom, window } = await createSandboxWindow();
     try {

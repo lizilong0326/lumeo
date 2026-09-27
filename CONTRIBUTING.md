@@ -3,7 +3,7 @@
 先按 [README](README.md) 了解本地服务与扩展的安装方式。需要手动验证配音时，使用自己的 MiniMax API Key，并留意服务商费用。
 
 1. 在自己的分支上修改代码，保留原项目的 MIT 版权声明。
-2. 使用 `npm run check:all` 检查脚本语法，使用 `npm test` 运行测试。
+2. 修改 `ui/effects.entry.js` 后先运行 `npm run build:ui`；再使用 `npm run check:all` 检查脚本语法，使用 `npm test` 运行测试。
 3. 对界面改动，检查中文文案、键盘可访问名称和 Chrome 中的实际布局。
 4. 提交问题或合并请求时，写明重现步骤与验证结果；界面改动可附截图。
 5. 不要提交 API 密钥、访问令牌或私人数据。

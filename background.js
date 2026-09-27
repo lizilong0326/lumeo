@@ -214,6 +214,7 @@ const CONTENT_SCRIPT_FILES = [
   "pipelines/caption.js",
   "pipelines/caption-orchestrator.js",
   "pipelines/standard.js",
+  "ui/effects.bundle.js",
   "ui/local-panel.js",
   "ui/local-playback.js",
   "ui/full-prep.js",
@@ -259,6 +260,8 @@ async function ensureContentScript(tabId) {
         reply.subtitleOverlayModule &&
         reply.captionFallbackChoice &&
         reply.captionOrchestrator &&
+        reply.thinkingOrb &&
+        reply.voiceGlow &&
         reply.localPanel &&
         reply.localPlayback &&
         reply.fullPrep) {
@@ -297,6 +300,8 @@ async function ensureContentScript(tabId) {
             "LumeoCaptionOrchestrator",
             "LumeoRealtimePipeline",
             "LumeoStandardPipeline",
+            "YimuThinkingOrb",
+            "YimuVoiceGlow",
             "YimuPanel",
             "YimuLocalPlayback",
             "YimuFullPrep",

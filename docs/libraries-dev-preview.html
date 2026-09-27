@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>译幕 · 动效本地预览</title>
+  <link rel="stylesheet" href="../content.css">
+  <style>
+    body { margin: 0; min-height: 100vh; background: #0b0d12; color: #f6f7fb; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+    .preview { max-width: 760px; margin: 8vh auto; padding: 0 28px; }
+    .preview h1 { font-size: 24px; margin: 0 0 8px; }
+    .preview p { color: #a4adbd; }
+    .preview-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .preview-controls button { padding: 9px 14px; border: 1px solid #465166; border-radius: 9px; background: #222b39; color: #f6f7fb; cursor: pointer; }
+    .preview-controls button:hover { background: #303c4f; }
+    .voice-preview { max-width: 344px; margin-top: 42px; }
+    .voice-preview h2 { font-size: 17px; margin: 0 0 8px; }
+    .voice-preview button { margin: 8px 0 14px; padding: 9px 14px; border: 1px solid #465166; border-radius: 9px; background: #222b39; color: #f6f7fb; cursor: pointer; }
+    .voice-preview button:hover { background: #303c4f; }
+    .yimu-panel { top: 80px; }
+    @media (max-width: 800px) {
+      .preview { margin: 32px auto; }
+      .yimu-panel { position: relative; top: auto; right: auto; width: min(344px, calc(100vw - 56px)); margin: 32px 28px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="preview">
+    <h1>译幕 · 动效本地预览</h1>
+    <p>这里展示整片准备面板和两个 Libraries.dev 动效，不会请求 YouTube 或 MiniMax。</p>
+    <p>未知耗时的阶段等待 2 秒后显示动态指示；有明确进度或完成时收起。</p>
+    <div class="preview-controls" aria-label="模拟任务阶段">
+      <button type="button" data-phase="inspecting">检查字幕</button>
+      <button type="button" data-phase="downloading">读取音轨</button>
+      <button type="button" data-phase="speaking">生成配音 3/12</button>
+      <button type="button" data-phase="ready">准备完成</button>
+      <button type="button" data-phase="failed">处理暂停</button>
+    </div>
+    <section class="voice-preview" aria-label="配音光效预览">
+      <h2>中文配音播放光效</h2>
+      <p>点击后用本地模拟音轨驱动光效，不会播放声音或调用语音服务。</p>
+      <button type="button" id="voiceToggle">播放配音光效示例</button>
+      <div class="yimu-voice-glow-host" id="voiceDemo" hidden></div>
+    </section>
+  </main>
+  <aside class="yimu-panel">
+    <div class="yimu-panel-header">
+      <span class="yimu-panel-mark" aria-hidden="true"><svg viewBox="0 0 128 128"><path d="M41 30 64 56 87 30M64 56v23" fill="none" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/><text x="64" y="112" fill="white" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="700" letter-spacing="1">译幕</text></svg></span>
+      <strong>译幕 · 正在准备整片中文配音</strong>
+    </div>
+    <p class="yimu-panel-status" role="status">正在检查视频字幕…</p>
+  </aside>
+  <script src="../ui/effects.bundle.js"></script>
+  <script src="../ui/local-panel.js"></script>
+  <script>
+    const panel = document.querySelector(".yimu-panel");
+    const controls = window.YimuPanel.attach(panel, panel.querySelector(".yimu-panel-header"));
+    panel.append(controls.progress);
+    const status = panel.querySelector(".yimu-panel-status");
+    const stages = {
+      inspecting: { progress: { phase: "inspecting" }, text: "正在检查视频字幕…" },
+      downloading: { progress: { phase: "downloading" }, text: "没有可用字幕，正在读取完整音轨…" },
+      speaking: { progress: { phase: "speaking", completed: 3, total: 12 }, text: "正在生成第 3 组中文配音…" },
+      ready: { progress: { phase: "ready" }, text: "整片中文配音已就绪。" },
+      failed: { progress: { phase: "failed" }, text: "处理暂停，可在实际任务中重试。" },
+    };
+    function selectStage(phase) {
+      const stage = stages[phase];
+      controls.setProgress(stage.progress);
+      status.textContent = stage.text;
+    }
+    document.querySelectorAll("[data-phase]").forEach((button) => {
+      button.addEventListener("click", () => selectStage(button.dataset.phase));
+    });
+    selectStage("inspecting");
+
+    const voiceButton = document.querySelector("#voiceToggle");
+    const voiceHost = document.querySelector("#voiceDemo");
+    const voiceEffect = window.YimuVoiceGlow.mount(voiceHost);
+    let voiceSample = null;
+    voiceButton.addEventListener("click", () => {
+      if (voiceSample) {
+        clearInterval(voiceSample.timer);
+        voiceSample.oscillator.stop();
+        void voiceSample.context.close();
+        voiceSample = null;
+        voiceEffect.setStream(null);
+        voiceHost.hidden = true;
+        voiceButton.textContent = "播放配音光效示例";
+        return;
+      }
+      try {
+        window.YimuVoiceGlow.prime();
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const destination = context.createMediaStreamDestination();
+        oscillator.type = "sine";
+        oscillator.frequency.value = 190;
+        gain.gain.value = 0.06;
+        oscillator.connect(gain).connect(destination);
+        oscillator.start();
+        const timer = setInterval(() => {
+          const now = context.currentTime;
+          gain.gain.setTargetAtTime(0.02 + 0.13 * Math.max(0, Math.sin(now * 5) * Math.sin(now * 1.3)), now, 0.08);
+        }, 80);
+        voiceSample = { context, oscillator, timer };
+        voiceHost.hidden = false;
+        voiceEffect.setStream(destination.stream);
+        voiceButton.textContent = "停止配音光效示例";
+      } catch {
+        voiceButton.textContent = "当前浏览器无法预览音频光效";
+        voiceButton.disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>

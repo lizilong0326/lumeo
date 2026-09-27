@@ -32,6 +32,9 @@
   const audioLoads = new Map();
   let panel;
   let panelControls;
+  let voiceGlowHost;
+  let voiceGlowController;
+  const capturedAudioStreams = new WeakMap();
   let pendingHandoff = null;
   let pendingVisibility = null;
   let status;
@@ -118,6 +121,24 @@
     currentAudio = null;
     currentCueKey = "";
     currentAudioKey = "";
+    voiceGlowController?.setStream(null);
+    if (voiceGlowHost) voiceGlowHost.hidden = true;
+  }
+
+  function showVoiceGlow(audio) {
+    if (!voiceGlowController || typeof audio?.captureStream !== "function") return;
+    try {
+      let stream = capturedAudioStreams.get(audio);
+      if (!stream?.getAudioTracks?.().some((track) => track.readyState !== "ended")) {
+        stream = audio.captureStream();
+        if (!stream?.getAudioTracks?.().length) return;
+        capturedAudioStreams.set(audio, stream);
+      }
+      voiceGlowController.setStream(stream);
+      voiceGlowHost.hidden = false;
+    } catch {
+      // The visual is optional; audio playback keeps its original route.
+    }
   }
 
   function segmentAt(seconds) {
@@ -201,7 +222,10 @@
     fitAudio(audio, cue);
     voicePlayPending = true;
     Promise.resolve().then(() => audio.play()).then(() => {
-      if (epoch === audioEpoch) voicePlayPending = false;
+      if (epoch === audioEpoch) {
+        voicePlayPending = false;
+        showVoiceGlow(audio);
+      }
     }).catch(() => {
       if (epoch !== audioEpoch || currentCueKey !== key) return;
       video.pause();
@@ -292,6 +316,9 @@
     pendingVisibility = null;
     panelControls?.destroy();
     panelControls = null;
+    voiceGlowController?.destroy();
+    voiceGlowController = null;
+    voiceGlowHost = null;
     panel?.remove();
     subtitle?.remove();
     sessionStorage.removeItem(bindingKey);
@@ -321,6 +348,10 @@
     status = document.createElement("p");
     status.className = "yimu-panel-status";
     status.textContent = "正在连接本地服务…";
+    voiceGlowHost = document.createElement("div");
+    voiceGlowHost.className = "yimu-voice-glow-host";
+    voiceGlowHost.hidden = true;
+    voiceGlowController = window.YimuVoiceGlow?.mount(voiceGlowHost) || null;
     const actions = document.createElement("div");
     actions.className = "yimu-panel-actions";
     startButton = document.createElement("button");
@@ -330,6 +361,7 @@
     startButton.addEventListener("click", async () => {
       const segment = video ? segmentAt(video.currentTime) : null;
       if (starting || !video || segment?.status !== "ready") return;
+      try { window.YimuVoiceGlow?.prime(); } catch { /* Visual enhancement only. */ }
       starting = true;
       startButton.disabled = true;
       video.pause();
@@ -407,7 +439,7 @@
     retryButton.addEventListener("click", () => { void recover("retry"); });
     skipButton.addEventListener("click", () => { void recover("skip"); });
     actions.append(startButton, fromStartButton, dismissButton, retryButton, skipButton);
-    panel.replaceChildren(header, status, panelControls.progress, actions, more);
+    panel.replaceChildren(header, status, panelControls.progress, voiceGlowHost, actions, more);
     if (!panel.isConnected) document.body.append(panel);
     subtitle = document.createElement("div");
     subtitle.style.cssText = "position:absolute;left:12%;right:12%;bottom:13%;z-index:2147483647;color:white;text-align:center;font:700 25px/1.45 sans-serif;max-height:3em;overflow:hidden;text-shadow:0 2px 5px #000,0 0 14px #000;pointer-events:none";

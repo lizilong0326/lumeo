@@ -154,9 +154,12 @@ YIMU_TTS_MIN_INTERVAL_MS=5000 npm run local:serve
 
 ```bash
 npm install
+npm run build:ui
 npm run check:all
 npm test
 ```
+
+修改 `ui/effects.entry.js` 后运行 `npm run build:ui`，生成扩展直接加载的 `ui/effects.bundle.js`。可打开 `docs/libraries-dev-preview.html` 查看准备进度与中文配音光效的本地演示；演示不调用 YouTube 或 MiniMax。
 
 | 路径 | 作用 |
 | --- | --- |
@@ -164,6 +167,7 @@ npm test
 | `local-service/public/` | 粘贴视频链接的本地网页。 |
 | `popup.html`、`popup.js` | Chrome 扩展弹窗与设置。 |
 | `content.js`、`ui/` | YouTube 页面内的字幕、配音与操作面板。 |
+| `ui/effects.entry.js`、`ui/effects.bundle.js` | Thinking Orbs 与 Voice Glow 的源码及扩展用构建文件。 |
 | `icons/` | Logo SVG 与 Chrome 所需的 PNG 图标。 |
 | `tests/` | 自动化测试。 |
 
@@ -171,4 +175,4 @@ npm test
 
 ## 许可证
 
-译幕基于 [Lumeo 原项目](https://github.com/ThanhNguyxnOrg/lumeo)改造，保留原项目的 Git 历史与版权声明。代码遵循 [MIT 许可证](LICENSE)；第三方服务名称及商标归各自所有者。
+译幕基于 [Lumeo 原项目](https://github.com/ThanhNguyxnOrg/lumeo)改造，保留原项目的 Git 历史与版权声明。代码遵循 [MIT 许可证](LICENSE)；打包的动效依赖见[第三方许可说明](THIRD_PARTY_NOTICES.md)。第三方服务名称及商标归各自所有者。

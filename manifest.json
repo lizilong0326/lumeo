@@ -56,7 +56,7 @@
     },
     {
       "matches": ["https://*.youtube.com/*", "https://youtube.com/*"],
-      "js": ["lib/browser-api.js", "lib/token-guard.js", "lib/audio-utils.js", "ui/overlay.js", "ui/subtitle-overlay.js", "ui/voice-picker.js", "ui/caption-fallback-choice.js", "services/providers.js", "services/minimax.js", "services/translate.js", "services/srt-export.js", "services/tts-browser.js", "services/tts-openai.js", "services/stt-soniox.js", "services/stt-groq.js", "services/captions.js", "services/kyma-client.js", "pipelines/caption.js", "pipelines/caption-orchestrator.js", "pipelines/standard.js", "ui/local-panel.js", "ui/local-playback.js", "ui/full-prep.js", "content.js"],
+      "js": ["lib/browser-api.js", "lib/token-guard.js", "lib/audio-utils.js", "ui/overlay.js", "ui/subtitle-overlay.js", "ui/voice-picker.js", "ui/caption-fallback-choice.js", "services/providers.js", "services/minimax.js", "services/translate.js", "services/srt-export.js", "services/tts-browser.js", "services/tts-openai.js", "services/stt-soniox.js", "services/stt-groq.js", "services/captions.js", "services/kyma-client.js", "pipelines/caption.js", "pipelines/caption-orchestrator.js", "pipelines/standard.js", "ui/effects.bundle.js", "ui/local-panel.js", "ui/local-playback.js", "ui/full-prep.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     }

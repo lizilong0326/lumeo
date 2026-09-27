@@ -1096,6 +1096,8 @@
             subtitleOverlayModule: !!window.LumeoSubtitleOverlay,
             captionFallbackChoice: !!window.LumeoCaptionFallbackChoice,
             captionOrchestrator: !!window.LumeoCaptionOrchestrator,
+            thinkingOrb: !!window.YimuThinkingOrb,
+            voiceGlow: !!window.YimuVoiceGlow,
             localPanel: !!window.YimuPanel,
             localPlayback: !!window.YimuLocalPlayback,
             fullPrep: !!window.YimuFullPrep,
