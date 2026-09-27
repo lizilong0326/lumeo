@@ -10,18 +10,13 @@
 
   function recommendationFor(tab = {}, settings = {}) {
     const tier = settings.tier || "caption";
-    if (tier === "realtime") {
-      return isLiveLike(tab)
-        ? "Recommended for live/podcast content where low latency matters."
-        : "Use Realtime when latency matters more than cost.";
-    }
     if (tier === "standard") {
-      return "Recommended when captions are missing, low quality, or you prefer listening.";
+      return "字幕缺失、质量较差或更想听中文时，建议使用国内配音。";
     }
     if (settings.captionUnavailable) {
-      return "Try Standard or an STT fallback because this video has no readable captions.";
+      return "此视频没有可读字幕，请尝试 MiniMax 国内配音。";
     }
-    return "Recommended first when YouTube captions exist: free, instant, and easiest to verify.";
+    return "有字幕时用 MiniMax 大模型翻译并朗读；无字幕时可自动切到国内配音。";
   }
 
   globalThis.LumeoTierRecommendation = {

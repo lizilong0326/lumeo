@@ -23,19 +23,17 @@ describe("services/providers.js", () => {
   });
 
   it("builds actionable missing-key copy", () => {
-    expect(api.missingKeyMessage("kyma-realtime"))
-      .toBe("Add your Kyma WebRTC key in Realtime bridge, then Start again.");
     expect(api.missingKeyMessage("gemini"))
-      .toBe("Add your Gemini key in Caption translator, then Start again.");
+      .toBe("请在字幕翻译中填写 Gemini 密钥，然后重新开始。");
   });
 
   it("resolves required providers per mode using the current selection", () => {
-    expect(api.requiredProvidersForMode("caption", {})).toEqual(["google-free"]);
+    expect(api.requiredProvidersForMode("caption", {})).toEqual(["minimax"]);
     expect(api.requiredProvidersForMode("caption", { translateProvider: "gemini" })).toEqual(["gemini"]);
     expect(api.requiredProvidersForMode("standard", { dubProvider: "kyma" })).toEqual(["kyma"]);
-    expect(
-      api.requiredProvidersForMode("realtime", { realtimeProvider: "kyma-realtime" }),
-    ).toEqual(["kyma-realtime"]);
+    expect(api.requiredProvidersForMode("standard", {})).toEqual(["minimax-dub"]);
+    expect(api.modes.realtime).toBeUndefined();
+    expect(api.providerById("kyma-realtime")).toBeNull();
   });
 
   it("filters available providers for a given slot and mode", () => {
@@ -73,12 +71,6 @@ describe("services/providers.js", () => {
     });
     expect(api.providerCapabilities(api.providerById("kyma"))).toMatchObject({
       standardDub: true,
-      realtimeDub: false,
-      requiresKey: true,
-    });
-    expect(api.providerCapabilities(api.providerById("kyma-realtime"))).toMatchObject({
-      standardDub: false,
-      realtimeDub: true,
       requiresKey: true,
     });
     expect(api.providerCapabilities(api.providerById("openai-direct-dub"))).toMatchObject({

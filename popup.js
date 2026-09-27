@@ -1,4 +1,4 @@
-// Lumeo popup: passive renderer. Background owns runtime state; this file
+// 译幕 popup: passive renderer. Background owns runtime state; this file
 // renders mode-aware provider slots so users can see which keys each workflow
 // accepts before they press Start.
 
@@ -6,6 +6,8 @@ const $ = (id) => document.getElementById(id);
 
 const tierSelect = $("tier");
 const voiceSelect = $("voice");
+const customVoiceField = $("customVoiceField");
+const customVoiceInput = $("customVoiceId");
 const langSelect = $("lang");
 const setupStack = $("setupStack");
 const keyVaultAllBody = $("keyVaultAllBody");
@@ -25,6 +27,7 @@ const voiceVolumeInput = $("voiceVolume");
 const originalOut = $("originalOut");
 const voiceOut = $("voiceOut");
 const showSourceCheckbox = $("showSource");
+const useChromeCookiesCheckbox = $("useChromeCookies");
 const tierMeta = $("tierMeta");
 const buildBadge = $("buildBadge");
 const modeRadios = Array.from(document.querySelectorAll('input[name="modeProxy"]'));
@@ -66,30 +69,37 @@ const CAPTION_LANGUAGES = [
   ["zu", "Zulu"],
 ];
 
-const REALTIME_VOICES = [
-  { id: "", name: "Auto · clones speaker" },
-  { id: "marin", name: "Marin" },
-  { id: "alloy", name: "Alloy" },
-  { id: "ash", name: "Ash" },
-  { id: "ballad", name: "Ballad" },
-  { id: "coral", name: "Coral" },
-  { id: "echo", name: "Echo" },
-  { id: "sage", name: "Sage" },
-  { id: "shimmer", name: "Shimmer" },
-  { id: "verse", name: "Verse" },
-];
+const chineseLanguageNames = new Intl.DisplayNames(["zh-CN"], { type: "language" });
+function languageName(code, fallback = code) {
+  if (code === "zh-CN") return "简体中文";
+  if (code === "zh-TW") return "繁体中文";
+  if (code === "zh") return "中文";
+  try { return chineseLanguageNames.of(code) || fallback; } catch { return fallback; }
+}
+
 const CAPTION_VOICES = [
-  { id: "off", name: "TTS off" },
-  { id: "browser", name: "Browser TTS" },
-  { id: "google-cloud", name: "Google Cloud TTS" },
+  { id: "off", name: "关闭朗读" },
+  { id: "minimax-tts", name: "MiniMax 中文朗读" },
+  { id: "browser", name: "浏览器朗读" },
+  { id: "google-cloud", name: "Google Cloud 朗读" },
 ];
-const STANDARD_VOICES = [
-  { id: "English_magnetic_voiced_man", name: "Magnetic Man" },
-  { id: "English_captivating_female1", name: "Captivating Female" },
-  { id: "English_ManWithDeepVoice", name: "Deep Voice Man" },
-  { id: "English_ConfidentWoman", name: "Confident Woman" },
-  { id: "Chinese (Mandarin)_News_Anchor", name: "News Anchor" },
+const MINIMAX_VOICES = [
+  { id: "male-qn-qingse", name: "MiniMax 青涩男声" },
+  { id: "female-shaonv", name: "MiniMax 少女声" },
+  { id: "Chinese (Mandarin)_Reliable_Executive", name: "沉稳高管" },
+  { id: "Chinese (Mandarin)_News_Anchor", name: "新闻女声" },
+  { id: "Chinese (Mandarin)_Warm_Bestie", name: "温暖闺蜜" },
+  { id: "Chinese (Mandarin)_Gentle_Youth", name: "温润青年" },
+  { id: "Chinese (Mandarin)_Radio_Host", name: "电台男主播" },
 ];
+const KYMA_VOICES = [
+  { id: "English_magnetic_voiced_man", name: "磁性男声" },
+  { id: "English_captivating_female1", name: "温柔女声" },
+  { id: "English_ManWithDeepVoice", name: "低沉男声" },
+  { id: "English_ConfidentWoman", name: "自信女声" },
+  { id: "Chinese (Mandarin)_News_Anchor", name: "中文播音员" },
+];
+const CUSTOM_VOICE_OPTION = "__custom_voice__";
 
 const KEY_FIELDS = [
   "kymaKey", "geminiKey", "openRouterKey", "groqApiKey",
@@ -108,12 +118,11 @@ let state = {
   connecting: false,
   paused: false,
   tier: "caption",
-  targetLanguage: "vi",
-  translateProvider: "google-free",
-  sttProvider: "none",
-  captionTtsProvider: "off",
-  dubProvider: "kyma",
-  realtimeProvider: "kyma-realtime",
+  targetLanguage: "zh-CN",
+  translateProvider: "minimax",
+  sttProvider: "minimax-asr",
+  captionTtsProvider: "minimax-tts",
+  dubProvider: "minimax-dub",
   kymaKey: "",
   geminiKey: "",
   openRouterKey: "",
@@ -127,12 +136,12 @@ let state = {
   elevenLabsKey: "",
   minimaxKey: "",
   replicateKey: "",
-  realtimeVoice: "marin",
-  standardVoice: "English_magnetic_voiced_man",
+  standardVoice: "male-qn-qingse",
   originalVolume: 18,
   voiceVolume: 100,
   showSource: false,
-  status: "Ready",
+  useChromeCookies: false,
+  status: "就绪",
 };
 
 function send(message) {
@@ -177,43 +186,41 @@ function selectedProviderForSlot(slot) {
 }
 
 function providerStatus(provider, slot) {
-  if (!provider) return { label: "missing", tone: "missing" };
+  if (!provider) return { label: "缺少服务", tone: "missing" };
   const capabilities = providerRegistry.providerCapabilities?.(provider) || {};
-  if (capabilities.comingSoon) return { label: "roadmap", tone: "soon" };
-  if (!capabilities.requiresKey) return { label: capabilities.localOnly ? "local" : "free", tone: "free" };
-  if (providerRegistry.hasRequiredKeys(provider.id, allKeyValues())) return { label: "ready", tone: "ready" };
-  return { label: slot?.required ? "needs key" : "optional key", tone: "missing" };
+  if (capabilities.comingSoon) return { label: "尚未开放", tone: "soon" };
+  if (!capabilities.requiresKey) return { label: capabilities.localOnly ? "本地" : "免费", tone: "free" };
+  if (providerRegistry.hasRequiredKeys(provider.id, allKeyValues())) return { label: "就绪", tone: "ready" };
+  return { label: slot?.required ? "需要密钥" : "可选密钥", tone: "missing" };
 }
 
 function providerMicrocopy(provider) {
   const capabilities = providerRegistry.providerCapabilities?.(provider) || {};
-  if (capabilities.comingSoon) return "Integration planned; hidden from runtime start until the provider path is complete.";
-  if (capabilities.localOnly) return "Runs locally in Chrome; no provider key or Lumeo server required.";
-  if (capabilities.standardDub || capabilities.realtimeDub) return "Audio leaves the browser for dubbing. Cost depends on provider balance and video length.";
-  if (capabilities.stt) return "Audio is uploaded only when YouTube has no readable captions and this fallback is selected.";
-  if (capabilities.tts) return "Translated text is sent for speech synthesis when Caption TTS is enabled.";
-  if (capabilities.translate && capabilities.requiresKey) return "Caption text is sent to your selected translation provider using your own key.";
-  return "No provider key required for this path.";
+  if (capabilities.comingSoon) return "此服务仍在规划中，暂不可启动。";
+  if (capabilities.localOnly) return "在 Chrome 本地运行，无需服务密钥。";
+  if (capabilities.standardDub) return "配音时会把音频发送给所选服务；费用取决于视频时长和服务定价。";
+  if (capabilities.stt) return "仅在视频无可读字幕且选择该备用方案时上传音频。";
+  if (capabilities.tts) return "启用字幕朗读后，译文会发送给语音合成服务。";
+  if (capabilities.translate && capabilities.requiresKey) return "字幕文本会通过你的密钥发送给所选翻译服务。";
+  return "此方案无需服务密钥。";
 }
 
 function populateLanguages(tier = state.tier, preferred = state.targetLanguage) {
-  const list = tier === "caption" ? CAPTION_LANGUAGES : DUB_LANGUAGES;
+  const list = tier === "caption" ? [["zh-CN", "简体中文"]] : DUB_LANGUAGES;
   langSelect.replaceChildren();
   for (const [code, name] of list) {
     const opt = document.createElement("option");
     opt.value = code;
-    opt.textContent = name;
+    opt.textContent = languageName(code, name);
     langSelect.appendChild(opt);
   }
-  langSelect.value = list.some(([code]) => code === preferred) ? preferred : "vi";
+  langSelect.value = list.some(([code]) => code === preferred) ? preferred : (tier === "caption" ? "zh-CN" : "zh");
 }
 
 function repopulateVoices(tier, preferredVoiceId) {
   const list = tier === "caption"
-    ? CAPTION_VOICES
-    : tier === "standard"
-      ? STANDARD_VOICES
-      : REALTIME_VOICES;
+    ? MINIMAX_VOICES
+    : (state.dubProvider === "kyma" ? KYMA_VOICES : MINIMAX_VOICES);
   voiceSelect.replaceChildren();
   for (const voice of list) {
     const opt = document.createElement("option");
@@ -221,16 +228,32 @@ function repopulateVoices(tier, preferredVoiceId) {
     opt.textContent = voice.name;
     voiceSelect.appendChild(opt);
   }
-  voiceSelect.value = Array.from(voiceSelect.options).some((opt) => opt.value === preferredVoiceId)
-    ? preferredVoiceId
-    : list[0].id;
+  if (list === MINIMAX_VOICES) {
+    const custom = document.createElement("option");
+    custom.value = CUSTOM_VOICE_OPTION;
+    custom.textContent = "其他音色：输入音色 ID";
+    voiceSelect.appendChild(custom);
+  }
+  const isPreset = list.some((voice) => voice.id === preferredVoiceId);
+  voiceSelect.value = isPreset ? preferredVoiceId
+    : (list === MINIMAX_VOICES && preferredVoiceId ? CUSTOM_VOICE_OPTION : list[0].id);
+  if (voiceSelect.value === CUSTOM_VOICE_OPTION && document.activeElement !== customVoiceInput) {
+    customVoiceInput.value = preferredVoiceId || "";
+  }
+  customVoiceField.hidden = voiceSelect.value !== CUSTOM_VOICE_OPTION;
+}
+
+function selectedVoiceId() {
+  return voiceSelect.value === CUSTOM_VOICE_OPTION
+    ? customVoiceInput.value.trim()
+    : voiceSelect.value;
 }
 
 function renderProviderSelect(slot, providers, activeProvider) {
   const label = document.createElement("label");
   label.className = "field slot-provider";
   const caption = document.createElement("span");
-  caption.textContent = "Provider";
+  caption.textContent = "服务";
   const select = document.createElement("select");
   select.dataset.slot = slot.id;
   select.dataset.setting = slot.storageKey;
@@ -238,7 +261,7 @@ function renderProviderSelect(slot, providers, activeProvider) {
     const opt = document.createElement("option");
     opt.value = provider.id;
     opt.disabled = provider.status === "coming-soon";
-    opt.textContent = provider.status === "coming-soon" ? `${provider.label} · roadmap` : provider.label;
+    opt.textContent = provider.status === "coming-soon" ? `${provider.label} · 尚未开放` : provider.label;
     select.appendChild(opt);
   }
   select.value = activeProvider?.id || providers[0]?.id || "";
@@ -246,9 +269,11 @@ function renderProviderSelect(slot, providers, activeProvider) {
   return label;
 }
 
-function renderKeyFields(card, provider) {
+function renderKeyFields(card, provider, renderedKeys) {
   if (!provider || provider.status === "coming-soon") return;
   for (const fieldId of providerRegistry.keyFieldsForProvider(provider.id)) {
+    if (renderedKeys.has(fieldId)) continue;
+    renderedKeys.add(fieldId);
     const meta = providerRegistry.keyFields[fieldId];
     if (!meta) continue;
     const label = document.createElement("label");
@@ -272,6 +297,22 @@ function renderSetupStack() {
   if (!setupStack || !providerRegistry) return;
   state.tier = tierSelect.value || state.tier;
   setupStack.replaceChildren();
+  const renderedKeys = new Set();
+
+  if (state.tier === "caption") {
+    const card = document.createElement("article");
+    card.className = "slot-card";
+    const title = document.createElement("strong");
+    title.textContent = "MiniMax 服务";
+    const copy = document.createElement("p");
+    copy.className = "slot-copy";
+    copy.textContent = "整片识别、翻译与中文配音共用一把密钥；请先启动本地服务。";
+    card.append(title, copy);
+    renderKeyFields(card, providerRegistry.providerById("minimax"), renderedKeys);
+    setupStack.append(card);
+    renderKeyVaultSummary();
+    return;
+  }
 
   for (const slot of providerRegistry.slotsForMode(state.tier)) {
     const providers = providerRegistry.providersForSlot(state.tier, slot.id);
@@ -292,7 +333,7 @@ function renderSetupStack() {
     titleWrap.className = "slot-title";
     const kicker = document.createElement("span");
     kicker.className = "slot-kicker";
-    kicker.textContent = slot.required ? "Required" : "Optional";
+    kicker.textContent = slot.required ? "必需" : "可选";
     const title = document.createElement("strong");
     title.textContent = slot.label;
     titleWrap.append(kicker, title);
@@ -316,7 +357,7 @@ function renderSetupStack() {
     providerMeta.className = "provider-copy provider-meta";
     providerMeta.textContent = providerMicrocopy(provider);
     card.appendChild(providerMeta);
-    renderKeyFields(card, provider);
+    renderKeyFields(card, provider, renderedKeys);
 
     const footer = document.createElement("div");
     footer.className = "slot-footer";
@@ -326,13 +367,13 @@ function renderSetupStack() {
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.className = "provider-help-link";
-      link.textContent = `Get ${provider.label} key`;
+      link.textContent = `获取 ${provider.label} 密钥`;
       footer.appendChild(link);
     }
     if (provider.status === "coming-soon") {
       const soon = document.createElement("span");
       soon.className = "soon-note";
-      soon.textContent = "Roadmap only — not selectable yet";
+      soon.textContent = "尚未开放，暂不可选择";
       footer.appendChild(soon);
     }
     if (footer.childNodes.length) card.appendChild(footer);
@@ -345,13 +386,13 @@ function renderKeyVaultSummary() {
   if (!keyVaultAllBody || !providerRegistry) return;
   keyVaultAllBody.replaceChildren();
   const saved = KEY_FIELDS.filter((fieldId) => keyValue(fieldId));
-  keyVaultBadge.textContent = `${saved.length} saved`;
+  keyVaultBadge.textContent = `已保存 ${saved.length} 个`;
   keyVaultBadge.classList.toggle("ok", saved.length > 0);
 
   const note = document.createElement("p");
   const strong = document.createElement("strong");
-  strong.textContent = "Keys stay in Chrome local storage. ";
-  note.append(strong, "Kyma uses one key for both Standard and Realtime, but each mode calls a different provider route.");
+  strong.textContent = "密钥保存在本机 Chrome 存储中。";
+  note.append(strong, "国内字幕翻译、语音识别和朗读共用一把 MiniMax 密钥。");
   keyVaultAllBody.appendChild(note);
 
   const groups = new Map();
@@ -380,7 +421,7 @@ function renderKeyVaultSummary() {
       const badge = document.createElement("span");
       const ready = providerRegistry.hasRequiredKeys(provider.id, allKeyValues());
       badge.className = `provider-badge ${ready ? "ok" : provider.status === "coming-soon" ? "soon" : "missing"}`;
-      badge.textContent = provider.status === "coming-soon" ? "soon" : ready ? "saved" : "missing";
+      badge.textContent = provider.status === "coming-soon" ? "待开放" : ready ? "已保存" : "未填写";
       head.append(name, badge);
       const desc = document.createElement("small");
       desc.textContent = provider.keyFields.map((fieldId) => providerRegistry.keyFields[fieldId]?.label || fieldId).join(", ");
@@ -390,7 +431,7 @@ function renderKeyVaultSummary() {
         link.href = provider.helpUrl;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        link.textContent = "Get key";
+        link.textContent = "获取密钥";
         row.appendChild(link);
       }
       group.appendChild(row);
@@ -401,40 +442,35 @@ function renderKeyVaultSummary() {
 
 function syncModeProxy(tier) {
   for (const radio of modeRadios) radio.checked = radio.value === tier;
-  const badge = providerRegistry?.modes[tier]?.badge || "Caption · Free";
-  const recommendation = globalThis.LumeoTierRecommendation?.recommendationFor(activeTabInfo || {}, { ...state, tier });
-  if (tierMeta) tierMeta.textContent = recommendation ? `${badge} · ${recommendation}` : badge;
+  if (tierMeta) tierMeta.textContent = "整片准备 · MiniMax";
   renderSetupStack();
 }
 
 function activeVoiceForTier(tier) {
-  if (tier === "caption") return state.captionTtsProvider || "off";
-  if (tier === "standard") return state.standardVoice || STANDARD_VOICES[0].id;
-  return state.realtimeVoice ?? "marin";
+  if (tier === "caption") return state.standardVoice || MINIMAX_VOICES[0].id;
+  if (tier === "standard") return state.standardVoice || (state.dubProvider === "kyma" ? KYMA_VOICES[0].id : MINIMAX_VOICES[0].id);
+  return state.standardVoice || MINIMAX_VOICES[0].id;
 }
 
 function readSettings() {
   const tier = tierSelect.value || "caption";
-  const voiceKey = tier === "caption"
-    ? "captionTtsProvider"
-    : tier === "standard"
-      ? "standardVoice"
-      : "realtimeVoice";
+  const voiceKey = tier === "caption" ? "captionTtsProvider" : "standardVoice";
   const settings = {
     ...allKeyValues(),
     tier,
-    targetLanguage: langSelect.value || "vi",
-    translateProvider: state.translateProvider || "google-free",
-    sttProvider: state.sttProvider || "none",
-    captionTtsProvider: state.captionTtsProvider || "off",
-    dubProvider: state.dubProvider || "kyma",
-    realtimeProvider: state.realtimeProvider || "kyma-realtime",
-    [voiceKey]: voiceSelect.value,
+    targetLanguage: langSelect.value || (tier === "caption" ? "zh-CN" : "zh"),
+    translateProvider: state.translateProvider || "minimax",
+    sttProvider: state.sttProvider || "minimax-asr",
+    captionTtsProvider: state.captionTtsProvider || "minimax-tts",
+    dubProvider: state.dubProvider || "minimax-dub",
+    [voiceKey]: selectedVoiceId(),
+    standardVoice: selectedVoiceId(),
     originalVolume: Number(originalVolumeInput.value),
     voiceVolume: Number(voiceVolumeInput.value),
     showSource: showSourceCheckbox.checked,
+    useChromeCookies: useChromeCookiesCheckbox.checked,
   };
-  if (tier === "caption") settings.captionTtsProvider = state.captionTtsProvider || voiceSelect.value || "off";
+  if (tier === "caption") settings.captionTtsProvider = "minimax-tts";
   return settings;
 }
 
@@ -461,12 +497,12 @@ function scheduleProviderSave() {
 function applyState(s) {
   state = { ...state, ...s };
   if (state.captionTtsProvider === "google-cloud-tts") state.captionTtsProvider = "google-cloud";
-  const tier = ["caption", "standard", "realtime"].includes(state.tier) ? state.tier : "caption";
+  const tier = "caption";
   if (tierSelect.value !== tier) tierSelect.value = tier;
   populateLanguages(tier, state.targetLanguage);
   if (typeof state.targetLanguage === "string") {
     const hasLanguage = Array.from(langSelect.options).some((opt) => opt.value === state.targetLanguage);
-    langSelect.value = hasLanguage ? state.targetLanguage : "vi";
+    langSelect.value = hasLanguage ? state.targetLanguage : (tier === "caption" ? "zh-CN" : "zh");
   }
   repopulateVoices(tier, activeVoiceForTier(tier));
   if (typeof state.originalVolume === "number") {
@@ -478,6 +514,7 @@ function applyState(s) {
     voiceOut.textContent = state.voiceVolume;
   }
   if (typeof state.showSource === "boolean") showSourceCheckbox.checked = state.showSource;
+  useChromeCookiesCheckbox.checked = state.useChromeCookies === true;
   const missingSlots = Array.isArray(state.slotsMissingKeys) ? state.slotsMissingKeys : [];
   const missingProviders = Array.isArray(state.missingProviders) ? state.missingProviders : [];
   highlightSlotId = missingSlots[0] || missingProviders[0] || highlightSlotId;
@@ -485,31 +522,31 @@ function applyState(s) {
 
   if (state.connecting) {
     setStateClass("connecting");
-    statusEl.textContent = state.status || "Connecting";
-    toggleBtn.textContent = "Stop";
+    statusEl.textContent = state.status || "正在连接";
+    toggleBtn.textContent = "停止";
     toggleBtn.classList.add("is-live");
   } else if (state.running && state.paused) {
     setStateClass("paused");
-    statusEl.textContent = "Paused.";
-    toggleBtn.textContent = "Stop";
+    statusEl.textContent = "已暂停";
+    toggleBtn.textContent = "停止";
     toggleBtn.classList.add("is-live");
   } else if (state.running) {
     setStateClass("active");
-    const langName = CAPTION_LANGUAGES.find(([code]) => code === state.targetLanguage)?.[1] || state.targetLanguage;
+    const langName = languageName(state.targetLanguage);
     statusEl.textContent = state.status && !/^Translating$/i.test(state.status)
       ? state.status
-      : `Translating to ${langName}.`;
-    toggleBtn.textContent = "Stop";
+      : `正在翻译为${langName}`;
+    toggleBtn.textContent = "停止";
     toggleBtn.classList.add("is-live");
   } else if (state.errorMessage) {
     setStateClass("error");
     statusEl.textContent = state.errorMessage;
-    toggleBtn.textContent = "Start";
+    toggleBtn.textContent = "开始准备整片";
     toggleBtn.classList.remove("is-live");
   } else {
     setStateClass("idle");
-    statusEl.textContent = "Ready.";
-    toggleBtn.textContent = "Start";
+    statusEl.textContent = "已就绪";
+    toggleBtn.textContent = "开始准备整片";
     toggleBtn.classList.remove("is-live");
   }
   toggleBtn.disabled = false;
@@ -532,18 +569,18 @@ async function loadActiveTabContext() {
     const isYouTubeWatch = !!videoId;
     tabContext?.classList.toggle("is-invalid", !isYouTubeWatch);
     tabTitle.textContent = isYouTubeWatch
-      ? (tab.title || "YouTube video").replace(/\s+-\s+YouTube$/i, "")
-      : "Open a YouTube video";
+      ? (tab.title || "YouTube 视频").replace(/\s+-\s+YouTube$/i, "")
+      : "请先打开 YouTube 视频";
     tabTitle.title = tab.title || "";
     tabMeta.textContent = isYouTubeWatch
       ? `youtube.com/watch · ${videoId}`
-      : "Lumeo needs an active YouTube watch tab";
-    tabBadge.textContent = isYouTubeWatch ? "ATTACHED" : "NO VIDEO";
+      : "请在当前标签页打开 YouTube 视频";
+    tabBadge.textContent = isYouTubeWatch ? "已连接" : "无视频";
     syncModeProxy(state.tier || tierSelect.value || "caption");
   } catch (err) {
-    tabTitle.textContent = "Could not read active tab";
+    tabTitle.textContent = "无法读取当前标签页";
     tabMeta.textContent = err.message || String(err);
-    tabBadge.textContent = "ERROR";
+    tabBadge.textContent = "错误";
     tabContext?.classList.add("is-invalid");
   }
 }
@@ -562,6 +599,7 @@ function onVolumeChange() {
 }
 
 function validationMissing(settings) {
+  if (settings.tier === "caption") return settings.minimaxKey ? [] : ["minimax"];
   const required = providerRegistry?.requiredProvidersForMode(settings.tier, settings) || [];
   return required.filter((providerId) => {
     const provider = providerRegistry.providerById(providerId);
@@ -574,9 +612,9 @@ async function clearCaptionCache() {
   clearCaptionCacheBtn.disabled = true;
   try {
     const reply = await send({ action: "captionCacheClear" });
-    if (!reply?.ok) throw new Error(reply?.error || "Could not clear caption cache.");
-    statusEl.textContent = "Caption cache cleared.";
-    if (captionBundleStatus) captionBundleStatus.textContent = "Caption cache emptied.";
+    if (!reply?.ok) throw new Error(reply?.error || "无法清除字幕缓存。");
+    statusEl.textContent = "字幕缓存已清除。";
+    if (captionBundleStatus) captionBundleStatus.textContent = "字幕缓存已清空。";
   } catch (err) {
     statusEl.textContent = err.message || String(err);
   } finally {
@@ -603,9 +641,9 @@ async function exportCaptionBundle() {
   exportCaptionBundleBtn.disabled = true;
   try {
     const videoId = activeVideoId();
-    if (!videoId) throw new Error("Open a YouTube video before exporting.");
+    if (!videoId) throw new Error("请先打开 YouTube 视频再导出。");
     const reply = await send({ action: "captionCacheGet" });
-    if (!reply?.ok) throw new Error(reply?.error || "Could not read caption cache.");
+    if (!reply?.ok) throw new Error(reply?.error || "无法读取字幕缓存。");
     const entries = Object.values(reply.cache?.entries || {});
     const targetLanguage = langSelect.value || state.targetLanguage;
     const entry = entries.find((item) => item?.meta?.videoId === videoId && item?.meta?.targetLanguage === targetLanguage)
@@ -614,11 +652,11 @@ async function exportCaptionBundle() {
       videoId,
       targetLanguage,
       provider: state.translateProvider || "google-free",
-      title: tabTitle.textContent || activeTabInfo?.title || "YouTube video",
+      title: tabTitle.textContent || activeTabInfo?.title || "YouTube 视频",
     });
     downloadJson(bundle, window.LumeoTranslationBundle.filenameForBundle(bundle));
-    statusEl.textContent = "Translation bundle exported.";
-    if (captionBundleStatus) captionBundleStatus.textContent = `${bundle.cues.length} cues exported for ${bundle.targetLanguage}.`;
+    statusEl.textContent = "字幕包已导出。";
+    if (captionBundleStatus) captionBundleStatus.textContent = `已导出 ${bundle.cues.length} 条${bundle.targetLanguage}字幕。`;
   } catch (err) {
     statusEl.textContent = err.message || String(err);
     if (captionBundleStatus) captionBundleStatus.textContent = err.message || String(err);
@@ -633,14 +671,14 @@ async function importCaptionBundle(event) {
   try {
     const parsed = window.LumeoTranslationBundle.parseBundle(await file.text());
     const reply = await send({ action: "captionCacheGet" });
-    if (!reply?.ok) throw new Error(reply?.error || "Could not read caption cache.");
+    if (!reply?.ok) throw new Error(reply?.error || "无法读取字幕缓存。");
     const cache = reply.cache || { entries: {} };
     cache.entries ||= {};
     cache.entries[parsed.key] = parsed.entry;
     const saved = await send({ action: "captionCacheSet", cache });
-    if (!saved?.ok) throw new Error(saved?.error || "Could not import caption cache.");
-    statusEl.textContent = "Translation bundle imported.";
-    if (captionBundleStatus) captionBundleStatus.textContent = `${parsed.bundle.cues.length} cues ready for ${parsed.bundle.targetLanguage}.`;
+    if (!saved?.ok) throw new Error(saved?.error || "无法导入字幕缓存。");
+    statusEl.textContent = "字幕包已导入。";
+    if (captionBundleStatus) captionBundleStatus.textContent = `已恢复 ${parsed.bundle.cues.length} 条${parsed.bundle.targetLanguage}字幕。`;
   } catch (err) {
     statusEl.textContent = err.message || String(err);
     if (captionBundleStatus) captionBundleStatus.textContent = err.message || String(err);
@@ -659,21 +697,28 @@ async function onToggle() {
       return;
     }
     const settings = readSettings();
+    if (!settings.standardVoice) {
+      statusEl.textContent = "请填写 MiniMax 音色 ID。";
+      setStateClass("error");
+      toggleBtn.disabled = false;
+      customVoiceInput.focus();
+      return;
+    }
     const missing = validationMissing(settings);
     if (missing.length) {
       const provider = providerRegistry.providerById(missing[0]);
       highlightSlotId = provider?.slot || provider?.id || "";
       renderSetupStack();
       statusEl.textContent = provider?.status === "coming-soon"
-        ? `${provider.label} is coming soon. Choose an available provider.`
-        : providerRegistry.missingKeyMessage?.(provider?.id) || `Add your ${provider?.label || "provider"} key, then Start again.`;
+        ? `${provider.label} 尚未开放，请选择可用服务。`
+        : providerRegistry.missingKeyMessage?.(provider?.id) || `请填写 ${provider?.label || "服务"} 密钥，然后重新开始。`;
       setStateClass("error");
       toggleBtn.disabled = false;
       return;
     }
     const reply = await send({ type: "START", settings });
     if (!reply?.ok) {
-      statusEl.textContent = reply?.error || "Could not start.";
+      statusEl.textContent = reply?.error || "无法启动。";
       setStateClass("error");
       if (reply?.slotsMissingKeys?.[0]) highlightSlotId = reply.slotsMissingKeys[0];
       else if (reply?.missingProviders?.[0]) highlightSlotId = reply.missingProviders[0];
@@ -681,7 +726,7 @@ async function onToggle() {
       renderSetupStack();
       state.running = false;
       state.connecting = false;
-      toggleBtn.textContent = "Start";
+      toggleBtn.textContent = "开始准备整片";
       toggleBtn.classList.remove("is-live");
       toggleBtn.disabled = false;
       return;
@@ -694,7 +739,7 @@ async function onToggle() {
     setStateClass("error");
     state.running = false;
     state.connecting = false;
-    toggleBtn.textContent = "Start";
+    toggleBtn.textContent = "开始准备整片";
     toggleBtn.classList.remove("is-live");
   }
 }
@@ -719,14 +764,22 @@ tierSelect.addEventListener("change", () => {
   void pushSettings();
 });
 voiceSelect.addEventListener("change", () => {
-  if (tierSelect.value === "caption") {
-    state.captionTtsProvider = voiceSelect.value;
-    renderSetupStack();
+  customVoiceField.hidden = voiceSelect.value !== CUSTOM_VOICE_OPTION;
+  if (voiceSelect.value === CUSTOM_VOICE_OPTION) {
+    customVoiceInput.focus();
+    return;
   }
+  state.standardVoice = voiceSelect.value;
+  void pushSettings();
+});
+customVoiceInput.addEventListener("change", () => {
+  if (voiceSelect.value !== CUSTOM_VOICE_OPTION || !customVoiceInput.value.trim()) return;
+  state.standardVoice = customVoiceInput.value.trim();
   void pushSettings();
 });
 langSelect.addEventListener("change", pushSettings);
 showSourceCheckbox.addEventListener("change", pushSettings);
+useChromeCookiesCheckbox.addEventListener("change", pushSettings);
 originalVolumeInput.addEventListener("input", onVolumeChange);
 voiceVolumeInput.addEventListener("input", onVolumeChange);
 toggleBtn.addEventListener("click", onToggle);
@@ -742,6 +795,7 @@ setupStack?.addEventListener("change", (event) => {
   state[slot.storageKey] = stateValueForSlot(slot, select.value);
   highlightSlotId = "";
   if (slot.id === "tts") voiceSelect.value = state.captionTtsProvider;
+  if (slot.id === "dubPipeline") repopulateVoices("standard", activeVoiceForTier("standard"));
   renderSetupStack();
   void pushSettings();
 });
@@ -775,7 +829,7 @@ try {
   const manifest = browserApi.getManifest();
   buildBadge.textContent = manifest.version_name || `v${manifest.version}`;
 } catch {
-  buildBadge.textContent = "dev";
+  buildBadge.textContent = "开发版";
 }
 
 loadActiveTabContext();

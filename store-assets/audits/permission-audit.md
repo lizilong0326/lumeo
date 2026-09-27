@@ -1,5 +1,7 @@
 # P5 permission audit
 
+> Historical audit from 2026-05-12. Permission justifications below describe an earlier multi-provider product and are not current Web Store submission evidence. Re-audit `manifest.json` before any store submission.
+
 Status: ready for reviewer copy, manual Web Store review still required.
 Date: 2026-05-12
 
@@ -7,7 +9,7 @@ Date: 2026-05-12
 
 | Permission | Status | Justification |
 |---|---|---|
-| `activeTab` | Keep | User starts Lumeo from the toolbar on the active YouTube tab. |
+| `activeTab` | Keep | User starts 译幕 from the toolbar on the active YouTube tab. |
 | `scripting` | Keep | Background injects content scripts into already open YouTube tabs after user action. |
 | `storage` | Keep | Saves tier, language, voice, volume, style settings, optional API keys, and caption cache locally. |
 
@@ -16,8 +18,9 @@ Date: 2026-05-12
 | Origin | Status | Code refs | Store note |
 |---|---|---|---|
 | `https://*.youtube.com/*`, `https://youtube.com/*` | Keep | `manifest.json`, `services/captions.js`, content scripts | Reads YouTube captions, captures active video audio when user starts dub, renders overlay on YouTube. |
-| `https://api.kymaapi.com/*` | Keep | `services/kyma-client.js`, `pipelines/standard.js` | Standard and Realtime tiers call Kyma with the user's Kyma key. No Lumeo server. |
-| `https://api.openai.com/*` | Keep | `pipelines/realtime.js`, `services/tts-openai.js`, `services/translate.js` | Realtime WebRTC call setup, OpenAI TTS, or OpenAI translation when selected by user. |
+| `https://api.kymaapi.com/*` | Keep | `services/kyma-client.js`, `pipelines/standard.js` | Optional legacy standard dubbing calls Kyma with the user's Kyma key. No 译幕 server. |
+| `https://api.minimax.cn/*` | Keep | `services/minimax.js`, `services/translate.js`, `pipelines/standard.js` | Default domestic ASR, model translation, and TTS call MiniMax with the user's own key. |
+| `https://api.openai.com/*` | Keep | `services/tts-openai.js`, `services/translate.js` | OpenAI TTS or OpenAI translation when selected by user. |
 | `https://generativelanguage.googleapis.com/*` | Keep | `services/translate.js` | Gemini translation when selected by user with their key. |
 | `https://openrouter.ai/*` | Keep | `services/translate.js` | OpenRouter translation when selected by user with their key. |
 | `https://api.groq.com/*` | Keep | `services/stt-groq.js`, `services/translate.js` | Groq STT or translation when selected by user with their key. |

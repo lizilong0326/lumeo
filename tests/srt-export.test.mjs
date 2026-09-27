@@ -19,7 +19,7 @@ describe("services/srt-export.js", () => {
 
   it("sanitizes filenames: strips Windows/Unix-illegal characters", () => {
     expect(api.sanitizeFilename("a/b\\c")).not.toMatch(/[\\/]/);
-    expect(api.sanitizeFilename("  ")).toBe("lumeo-subtitles");
+    expect(api.sanitizeFilename("  ")).toBe("yimu-subtitles");
     expect(api.sanitizeFilename("x".repeat(200))).toHaveLength(120);
     expect(api.sanitizeFilename("a:b*c?")).not.toMatch(/[:*?]/);
   });

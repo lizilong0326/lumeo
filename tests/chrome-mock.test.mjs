@@ -9,7 +9,7 @@ describe("chrome mock helper", () => {
 
     await expect(chrome.storage.local.get("existing")).resolves.toEqual({ existing: "value" });
     await expect(chrome.storage.local.get(["existing", "added"])).resolves.toEqual({ existing: "value", added: 42 });
-    await expect(chrome.storage.local.get({ missing: "fallback", added: 0 })).resolves.toEqual({ missing: "fallback", added: 42 });
+    await expect(chrome.storage.local.get({ missing: "备用方案", added: 0 })).resolves.toEqual({ missing: "备用方案", added: 42 });
   });
 
   it("supports runtime and tab message handlers", async () => {

@@ -17,20 +17,20 @@ describe("services/kyma-client.js", () => {
 
   it("normalizes known Kyma error codes", () => {
     expect(api.parseError(402, JSON.stringify({ error: { code: "insufficient_balance", cta_url: "https://pay" } })))
-      .toEqual({ user: "Out of Kyma balance.", cta: "https://pay", ctaLabel: "Top up" });
+      .toEqual({ user: "Kyma 余额不足。", cta: "https://pay", ctaLabel: "去充值" });
     expect(api.parseError(409, JSON.stringify({ error: { code: "too_many_sessions" } })).user)
-      .toBe("Kyma session limit reached. Stop another Lumeo session, then retry.");
+      .toBe("Kyma 会话数已达上限，请先停止另一段译幕配音后重试。");
     expect(api.parseError(502, JSON.stringify({ error: { code: "upstream_error" } })).user)
-      .toBe("Kyma provider is temporarily unavailable. Retry in a minute.");
+      .toBe("Kyma 服务暂不可用，请稍后重试。");
     expect(api.parseError(429, JSON.stringify({ error: { code: "rate_limited" } })).user)
-      .toBe("Kyma rate limit reached. Wait 30 seconds, then retry.");
+      .toBe("Kyma 请求过于频繁，请等待 30 秒后重试。");
   });
 
   it("falls back to provider messages and raw response text", () => {
     expect(api.parseError(400, JSON.stringify({ error: { message: "bad payload" } })).user)
-      .toBe("Kyma 400: bad payload. Check your Kyma key/session, then retry.");
+      .toBe("Kyma 错误 400：bad payload。请检查密钥和会话后重试。");
     expect(api.parseError(500, "bad gateway").user)
-      .toBe("Kyma 500: bad gateway. Check your Kyma key/session, then retry.");
+      .toBe("Kyma 错误 500：bad gateway。请检查密钥和会话后重试。");
   });
 
   it("posts JSON with bearer auth and returns parsed JSON", async () => {
@@ -95,9 +95,9 @@ describe("services/kyma-client.js", () => {
     }));
 
     await expect(api.post("/test", "kyma-key")).rejects.toMatchObject({
-      message: "Out of Kyma balance.",
+      message: "Kyma 余额不足。",
       cta: "https://billing",
-      ctaLabel: "Top up",
+      ctaLabel: "去充值",
       status: 402,
     });
   });

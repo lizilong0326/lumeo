@@ -28,9 +28,9 @@
 
     async translateLiveCaptionLine(text, ctx) {
       const settings = ctx.getSettings();
-      const [translated] = await window.LumeoTranslate.translateBatch([text], settings.targetLanguage || "vi", {
+      const [translated] = await window.LumeoTranslate.translateBatch([text], settings.targetLanguage || "zh-CN", {
         provider: settings.translateProvider || "google-free",
-        targetLanguageName: ctx.getLangName(settings.targetLanguage) || settings.targetLanguage || "Vietnamese",
+        targetLanguageName: ctx.getLangName(settings.targetLanguage) || settings.targetLanguage || "Chinese (Simplified)",
         openaiKey: settings.openaiKey,
         openaiModel: settings.openaiModel,
         geminiKey: settings.geminiKey,
@@ -39,6 +39,7 @@
         openRouterModel: settings.openRouterModel,
         groqApiKey: settings.groqApiKey,
         groqModel: settings.groqModel,
+        minimaxKey: settings.minimaxKey,
         googleCloudKey: settings.googleCloudKey,
         libreTranslateUrl: settings.libreTranslateUrl,
         libreTranslateKey: settings.libreTranslateKey,
@@ -82,9 +83,10 @@
       if (settings.captionTtsProvider && settings.captionTtsProvider !== "off") {
         pipeline.speakCue(cue, {
           provider: settings.captionTtsProvider,
-          targetLanguage: settings.targetLanguage || "vi",
+          targetLanguage: settings.targetLanguage || "zh-CN",
           googleCloudKey: settings.googleCloudKey,
           openaiKey: settings.openaiKey,
+          minimaxKey: settings.minimaxKey,
           rate: settings.ttsRate || 1,
           volume: Math.min((settings.voiceVolume ?? 100) / 100, 1),
         }).catch(() => { });
@@ -106,7 +108,7 @@
       };
       ctx.onSessionCreated(session);
       ctx.applyTierToolbar();
-      ctx.setStatusText("Choose fallback");
+      ctx.setStatusText("选择备用方案");
       ctx.setOverlayState("error");
 
       const elements = ctx.getElements();
@@ -117,32 +119,51 @@
       const wrap = window.LumeoCaptionFallbackChoice.create({
         reason,
         diagnostics,
+        onMiniMax: () => this.startMiniMaxChoice(pipeline, ctx),
         onGroq: () => this.startGroqChoice(video, token, pipeline, reason, ctx),
         onSoniox: () => this.startSonioxChoice(video, token, pipeline, reason, ctx),
         onStandard: () => ctx.onSwitchToStandard(pipeline),
         onRetry: () => this.retryCaptionChoice(pipeline, ctx),
-        onCancel: () => ctx.onSessionEnded("caption-fallback-cancel", "Caption fallback cancelled."),
+        onCancel: () => ctx.onSessionEnded("caption-fallback-cancel", "已取消字幕备用方案。"),
       });
       elements.target.appendChild(wrap);
 
       ctx.onStateChange({
         running: true,
         paused: false,
-        status: "Choose fallback",
+        status: "选择备用方案",
         errorMessage: "",
         errorCode: "missing-caption-track",
-        missingProviders: ["soniox", "kyma"],
+        missingProviders: ["minimax-dub", "soniox", "kyma"],
         slotsMissingKeys: [],
       });
+    },
+
+    async startMiniMaxChoice(pipeline, ctx) {
+      const settings = ctx.getSettings();
+      if (!settings.minimaxKey) {
+        ctx.showToast("请在服务设置中填写 MiniMax API 密钥。", 7000);
+        ctx.onStateChange({
+          running: true,
+          status: "填写 MiniMax 密钥",
+          errorMessage: "",
+          errorCode: "missing-caption-track",
+          missingProviders: ["minimax-dub"],
+          slotsMissingKeys: ["dubPipeline"],
+        });
+        ctx.onOpenPopup("dubPipeline");
+        return;
+      }
+      await ctx.onSwitchToStandard(pipeline);
     },
 
     async startGroqChoice(video, token, pipeline, reason, ctx) {
       const settings = ctx.getSettings();
       if (!settings.groqApiKey) {
-        ctx.showToast("Add a Groq key in the no-caption fallback card.", 7000);
+        ctx.showToast("请在无字幕备用方案中填写 Groq 密钥。", 7000);
         ctx.onStateChange({
           running: true,
-          status: "Add Groq key",
+          status: "填写 Groq 密钥",
           errorMessage: "",
           errorCode: "missing-caption-track",
           missingProviders: ["groq-whisper"],
@@ -153,18 +174,18 @@
       }
       const reply = await this.startCaptionGroqFallback(video, token, pipeline, reason, ctx);
       if (!reply?.ok) {
-        ctx.showToast(reply?.error || "Could not start Groq Whisper fallback.", 7000);
-        ctx.onStateChange({ running: false, status: "Groq error", errorMessage: reply?.error || "Groq error" });
+        ctx.showToast(reply?.error || "无法启动 Groq Whisper 语音识别。", 7000);
+        ctx.onStateChange({ running: false, status: "Groq 出错", errorMessage: reply?.error || "Groq 出错" });
       }
     },
 
     async startSonioxChoice(video, token, pipeline, reason, ctx) {
       const settings = ctx.getSettings();
       if (!settings.sonioxApiKey) {
-        ctx.showToast("Add a Soniox key in the popup marketplace.", 7000);
+        ctx.showToast("请在弹窗中填写 Soniox 密钥。", 7000);
         ctx.onStateChange({
           running: true,
-          status: "Add Soniox key",
+          status: "填写 Soniox 密钥",
           errorMessage: "",
           errorCode: "missing-caption-track",
           missingProviders: ["soniox"],
@@ -175,8 +196,8 @@
       }
       const reply = await this.startCaptionSonioxFallback(video, token, pipeline, reason, ctx);
       if (!reply?.ok) {
-        ctx.showToast(reply?.error || "Could not start Soniox fallback.", 7000);
-        ctx.onStateChange({ running: false, status: "Soniox error", errorMessage: reply?.error || "Soniox error" });
+        ctx.showToast(reply?.error || "无法启动 Soniox 语音识别。", 7000);
+        ctx.onStateChange({ running: false, status: "Soniox 出错", errorMessage: reply?.error || "Soniox 出错" });
       }
     },
 
@@ -184,12 +205,12 @@
       pipeline.stop?.();
       ctx.onSessionCreated(null);
       const reply = await this.start(ctx);
-      if (!reply?.ok) ctx.showToast(reply?.error || "Retry failed.", 7000);
+      if (!reply?.ok) ctx.showToast(reply?.error || "重试失败。", 7000);
     },
 
     async startCaptionDomFallback(video, token, pipeline, reason, diagnostics, ctx) {
       const captionsEnabled = await this.enableYouTubeCaptions();
-      if (token !== ctx.getPageToken()) return { ok: false, error: "Stale session." };
+      if (token !== ctx.getPageToken()) return { ok: false, error: "会话已过期。" };
 
       const session = {
         token,
@@ -213,10 +234,10 @@
 
       const transcript = ctx.getTranscriptController();
       transcript?.renderCaptionTranscript(session.cues);
-      ctx.setStatusText(captionsEnabled ? "YouTube CC live" : "Waiting for CC");
+      ctx.setStatusText(captionsEnabled ? "YouTube 字幕已开启" : "正在等待字幕");
       ctx.setOverlayState("connecting");
-      ctx.setTargetText("Waiting for YouTube captions...");
-      ctx.onStateChange({ running: true, paused: false, status: "Captioning (YouTube CC)" });
+      ctx.setTargetText("正在等待 YouTube 字幕…");
+      ctx.onStateChange({ running: true, paused: false, status: "正在显示 YouTube 字幕" });
 
       let translating = false;
       const startedAt = Date.now();
@@ -228,14 +249,18 @@
         if (currentSession?.type !== "caption" || !currentSession.liveDomCc || currentSession.token !== token) return;
         const text = ctx.readYTCaptions();
         if (!text) {
-          if (!currentSession.cues.length && Date.now() - startedAt > 9000) {
+          if (!currentSession.cues.length && Date.now() - startedAt > (captionsEnabled ? 9000 : 2500)) {
+            if (settings.minimaxKey && settings.sttProvider === "minimax-asr") {
+              ctx.onSwitchToStandard(pipeline);
+              return;
+            }
             this.renderCaptionFallbackChoice(
               video,
               token,
               pipeline,
               captionsEnabled
-                ? `${reason} YouTube CC turned on, but no rendered caption text appeared.`
-                : `${reason} The YouTube player says captions are unavailable.`,
+                ? `${reason} YouTube 字幕已开启，但画面上没有出现字幕。`
+                : `${reason} YouTube 播放器显示字幕不可用。`,
               diagnostics,
               ctx
             );
@@ -273,14 +298,16 @@
         if (settings.captionTtsProvider && settings.captionTtsProvider !== "off") {
           pipeline.speakCue(cue, {
             provider: settings.captionTtsProvider,
-            targetLanguage: settings.targetLanguage || "vi",
+            targetLanguage: settings.targetLanguage || "zh-CN",
             googleCloudKey: settings.googleCloudKey,
             openaiKey: settings.openaiKey,
+            minimaxKey: settings.minimaxKey,
             rate: settings.ttsRate || 1,
             volume: Math.min((settings.voiceVolume ?? 100) / 100, 1),
+            syncDuration: Math.max(0.3, Number(cue.end) - Number(video.currentTime)),
           }).catch(() => { });
         }
-        ctx.setStatusText("YouTube CC live");
+        ctx.setStatusText("YouTube 字幕已开启");
         ctx.setOverlayState("live");
       };
 
@@ -288,15 +315,24 @@
       void tick();
 
       ctx.setYTPauseHandler(() => {
-        ctx.setStatusText("Paused");
+        window.LumeoTTS?.stop?.();
+        session.lastCueIndex = -1;
+        ctx.setStatusText("已暂停");
         ctx.setOverlayState("paused");
-        ctx.onStateChange({ paused: true, status: "Paused" });
+        ctx.onStateChange({ paused: true, status: "已暂停" });
       });
       ctx.setYTPlayHandler(() => {
-        ctx.setStatusText("YouTube CC live");
+        ctx.setStatusText("YouTube 字幕已开启");
         ctx.setOverlayState("live");
-        ctx.onStateChange({ paused: false, status: "Captioning (YouTube CC)" });
+        ctx.onStateChange({ paused: false, status: "正在显示 YouTube 字幕" });
       });
+
+      try { await video.play(); }
+      catch {
+        ctx.setStatusText("请点击视频播放，以读取 YouTube 字幕");
+        ctx.setOverlayState("paused");
+        ctx.onStateChange({ paused: true, status: "请点击视频播放" });
+      }
 
       return { ok: true };
     },
@@ -304,11 +340,11 @@
     async startCaptionGroqFallback(video, token, pipeline, reason, ctx) {
       if (!window.LumeoGroqSTT) {
         ctx.removeOverlay();
-        return { ok: false, error: "Groq fallback service not loaded." };
+        return { ok: false, error: "Groq 语音识别服务未加载。" };
       }
       ctx.setStatusText("Groq Whisper");
       ctx.setOverlayState("connecting");
-      ctx.showToast(reason ? `${reason} Starting Groq Whisper fallback.` : "Starting Groq Whisper fallback.", 5000);
+      ctx.showToast(reason ? `${reason} 正在启动 Groq Whisper 语音识别。` : "正在启动 Groq Whisper 语音识别。", 5000);
 
       let stream;
       try {
@@ -346,9 +382,9 @@
             void this.appendLiveSttCue(video, pipeline, result?.text || "", ctx);
           },
           onError: (err) => {
-            ctx.setStatusText("Groq error");
-            ctx.showToast(err?.message || "Groq Whisper error", 7000);
-            ctx.onStateChange({ running: false, paused: false, status: "Groq error", errorMessage: err?.message || "Groq Whisper error" });
+            ctx.setStatusText("Groq 出错");
+            ctx.showToast(err?.message || "Groq Whisper 语音识别出错", 7000);
+            ctx.onStateChange({ running: false, paused: false, status: "Groq 出错", errorMessage: err?.message || "Groq Whisper 语音识别出错" });
           },
         });
         session.sttLoop = loop;
@@ -359,20 +395,35 @@
         return { ok: false, error: err?.message || String(err) };
       }
 
-      ctx.setStatusText("Groq Whisper Live");
+      ctx.setStatusText("Groq Whisper 实时识别中");
       ctx.setOverlayState("live");
-      ctx.onStateChange({ running: true, paused: false, status: "Captioning (Groq STT)" });
+      ctx.onStateChange({ running: true, paused: false, status: "正在显示 Groq 识别结果" });
+      ctx.setYTPauseHandler(() => {
+        session.sttLoop?.pause();
+        window.LumeoTTS?.stop?.();
+        ctx.setStatusText("已暂停");
+        ctx.setOverlayState("paused");
+        ctx.onStateChange({ paused: true, status: "已暂停" });
+      });
+      ctx.setYTPlayHandler(() => {
+        session.sttLoop?.resume();
+        ctx.setStatusText("Groq Whisper 实时识别中");
+        ctx.setOverlayState("live");
+        ctx.onStateChange({ paused: false, status: "正在显示 Groq 识别结果" });
+      });
+      try { await video.play(); }
+      catch { session.sttLoop?.pause(); }
       return { ok: true };
     },
 
     async startCaptionSonioxFallback(video, token, pipeline, reason, ctx) {
       if (!window.LumeoSonioxSTT) {
         ctx.removeOverlay();
-        return { ok: false, error: "Soniox fallback service not loaded." };
+        return { ok: false, error: "Soniox 语音识别服务未加载。" };
       }
-      ctx.setStatusText("Soniox STT");
+      ctx.setStatusText("Soniox 语音识别");
       ctx.setOverlayState("connecting");
-      ctx.showToast(reason ? `${reason} Starting Soniox fallback.` : "Starting Soniox fallback.", 5000);
+      ctx.showToast(reason ? `${reason} 正在启动 Soniox 语音识别。` : "正在启动 Soniox 语音识别。", 5000);
 
       const session = {
         token,
@@ -408,14 +459,14 @@
         await window.LumeoSonioxSTT.start({
           apiKey: settings.sonioxApiKey,
           onStatus: (status) => {
-            ctx.setStatusText(status === "connected" ? "Soniox Live" : status || "Soniox STT");
+            ctx.setStatusText(status === "connected" ? "Soniox 实时识别中" : status || "Soniox 语音识别");
             ctx.setOverlayState("live");
-            ctx.onStateChange({ running: true, paused: false, status: "Captioning (STT)" });
+            ctx.onStateChange({ running: true, paused: false, status: "正在显示语音识别结果" });
           },
           onError: (error) => {
-            ctx.setStatusText("Soniox error");
-            ctx.showToast(error || "Soniox error", 7000);
-            ctx.onStateChange({ running: false, paused: false, status: "Soniox error", errorMessage: error || "Soniox error" });
+            ctx.setStatusText("Soniox 出错");
+            ctx.showToast(error || "Soniox 出错", 7000);
+            ctx.onStateChange({ running: false, paused: false, status: "Soniox 出错", errorMessage: error || "Soniox 出错" });
           },
           onResult: (data) => {
             const currentSession = ctx.getSession();
@@ -445,9 +496,25 @@
         return { ok: false, error: err?.message || String(err) };
       }
 
-      ctx.setStatusText("Soniox Live");
+      ctx.setStatusText("Soniox 实时识别中");
       ctx.setOverlayState("live");
-      ctx.onStateChange({ running: true, paused: false, status: "Captioning (STT)" });
+      ctx.onStateChange({ running: true, paused: false, status: "正在显示语音识别结果" });
+      ctx.setYTPauseHandler(() => {
+        window.LumeoSonioxSTT.pause();
+        session.tokenBuffer = [];
+        window.LumeoTTS?.stop?.();
+        ctx.setStatusText("已暂停");
+        ctx.setOverlayState("paused");
+        ctx.onStateChange({ paused: true, status: "已暂停" });
+      });
+      ctx.setYTPlayHandler(() => {
+        window.LumeoSonioxSTT.resume();
+        ctx.setStatusText("Soniox 实时识别中");
+        ctx.setOverlayState("live");
+        ctx.onStateChange({ paused: false, status: "正在显示语音识别结果" });
+      });
+      try { await video.play(); }
+      catch { window.LumeoSonioxSTT.pause(); }
       return { ok: true };
     },
 
@@ -456,33 +523,98 @@
       const total = Number(progress.total || 0);
       const suffix = total ? ` ${completed}/${total}` : "";
       let status;
-      if (progress.phase === "cached") status = `Caption cache${suffix}`;
-      else if (progress.phase === "native") status = `Native captions${suffix}`;
-      else if (progress.phase === "translated") status = `Translated captions${suffix}`;
-      else status = `Translating captions${suffix}`;
+      if (progress.phase === "cached") status = `字幕缓存${suffix}`;
+      else if (progress.phase === "native") status = `原生字幕${suffix}`;
+      else if (progress.phase === "translated") status = `已翻译字幕${suffix}`;
+      else status = `正在翻译字幕${suffix}`;
       ctx.setStatusText(status);
       ctx.setTargetText(status);
       ctx.onStateChange({ running: true, paused: false, status });
     },
 
+    createSpeechPrefetcher(pipeline, video, settings) {
+      if (settings.captionTtsProvider !== "minimax-tts" || !settings.minimaxKey || !window.LumeoMiniMax?.prefetch) {
+        return { tick() {}, pause() {}, resume() {}, stop() {} };
+      }
+      const requested = new Set();
+      const controllers = new Map();
+      let active = 0;
+      let stopped = false;
+      let paused = !!video.paused;
+      const tick = () => {
+        if (stopped || paused || video.paused) return;
+        const time = Number(video.currentTime || 0);
+        for (const [index, controller] of controllers) {
+          const cue = pipeline.cues[index];
+          if (!cue || cue.end < time - 5 || cue.start > time + 45) controller.abort();
+        }
+        if (active >= 2) return;
+        const upcoming = [];
+        for (let index = 0; index < pipeline.cues.length; index += 1) {
+          const cue = pipeline.cues[index];
+          if (cue?.start > time + 24) break;
+          if (cue?.translated && cue.end >= time) upcoming.push({ cue, index });
+          if (upcoming.length >= 8) break;
+        }
+        for (const { cue, index } of upcoming) {
+          if (active >= 2) break;
+          if (requested.has(index)) continue;
+          requested.add(index);
+          active += 1;
+          const controller = new AbortController();
+          controllers.set(index, controller);
+          Promise.resolve().then(() => window.LumeoMiniMax.prefetch(cue.translated, {
+            apiKey: settings.minimaxKey,
+            voice: settings.minimaxVoice || "male-qn-qingse",
+            speed: settings.ttsRate || 1,
+            signal: controller.signal,
+          })).catch(() => {
+            if (controller.signal.aborted) requested.delete(index);
+          }).finally(() => {
+            controllers.delete(index);
+            active -= 1;
+            if (!stopped && !paused) tick();
+          });
+        }
+      };
+      return {
+        tick,
+        pause() {
+          paused = true;
+          for (const controller of controllers.values()) controller.abort();
+        },
+        resume() {
+          if (stopped) return;
+          paused = false;
+          tick();
+        },
+        stop() {
+          stopped = true;
+          for (const controller of controllers.values()) controller.abort();
+          controllers.clear();
+        },
+      };
+    },
+
     async start(ctx) {
       const video = ctx.getVideo();
-      if (!video) return { ok: false, error: "No YouTube video on this page." };
+      if (!video) return { ok: false, error: "当前页面没有 YouTube 视频。" };
+      video.pause();
 
       ctx.buildOverlay();
-      ctx.setStatusText("Loading captions");
-      ctx.setTargetText("Loading captions...");
+      ctx.setStatusText("正在加载字幕");
+      ctx.setTargetText("正在加载字幕…");
       ctx.setOverlayState("connecting");
       ctx.applyTierToolbar();
       ctx.applySourceVisibility();
-      ctx.onStateChange({ running: true, paused: false, status: "Loading captions" });
+      ctx.onStateChange({ running: true, paused: false, status: "正在加载字幕" });
 
       const token = ctx.getPageToken();
       const missingDeps = this.missingCaptionDependencies();
       if (missingDeps.length) {
         return {
           ok: false,
-          error: `Caption dependencies not loaded: ${missingDeps.join(", ")}. Reload the extension and this YouTube tab.`,
+          error: `字幕组件未加载：${missingDeps.join("、")}。请重新加载扩展和当前 YouTube 标签页。`,
         };
       }
 
@@ -492,8 +624,8 @@
       let result;
       try {
         result = await pipeline.start({
-          targetLanguage: settings.targetLanguage || "vi",
-          targetLanguageName: ctx.getLangName(settings.targetLanguage) || settings.targetLanguage || "Vietnamese",
+          targetLanguage: settings.targetLanguage || "zh-CN",
+          targetLanguageName: ctx.getLangName(settings.targetLanguage) || settings.targetLanguage || "Chinese (Simplified)",
           translateProvider: settings.translateProvider || "google-free",
           openaiKey: settings.openaiKey,
           openaiModel: settings.openaiModel,
@@ -503,11 +635,27 @@
           openRouterModel: settings.openRouterModel,
           groqApiKey: settings.groqApiKey,
           groqModel: settings.groqModel,
+          minimaxKey: settings.minimaxKey,
           googleCloudKey: settings.googleCloudKey,
           libreTranslateUrl: settings.libreTranslateUrl,
           libreTranslateKey: settings.libreTranslateKey,
           context: settings.translationContext,
-          onProgress: (p) => this.updateCaptionProgress(p, ctx),
+          progressive: true,
+          playheadSeconds: video.currentTime,
+          onProgress: (p) => {
+            if (ctx.getSession()?.type === "caption") return;
+            this.updateCaptionProgress(p, ctx);
+          },
+          onCueUpdate: () => {
+            const currentSession = ctx.getSession();
+            if (currentSession?.type !== "caption" || currentSession.token !== token) return;
+            currentSession.lastCueIndex = -1;
+            ctx.getTranscriptController()?.renderCaptionTranscript(pipeline.cues);
+            currentSession.speechPrefetcher?.tick();
+          },
+          onBackgroundError: (error) => {
+            if (ctx.getSession()?.type === "caption") ctx.showToast(`后续字幕翻译中断：${error.message}`, 7000);
+          },
         });
       } catch (err) {
         ctx.removeOverlay();
@@ -517,7 +665,7 @@
       if (token !== ctx.getPageToken()) {
         pipeline.stop();
         ctx.removeOverlay();
-        return { ok: false, error: "Cancelled before captions loaded." };
+        return { ok: false, error: "字幕加载前已取消。" };
       }
 
       if (!result?.ok) {
@@ -525,7 +673,7 @@
           video,
           token,
           pipeline,
-          result?.error || "Could not load captions.",
+          result?.error || "无法加载字幕。",
           result?.diagnostics,
           ctx
         );
@@ -541,21 +689,54 @@
         stream: null,
         pc: null,
         dc: null,
+        readyCues: new Set(),
+        bufferingCueIndex: null,
+        ignoreNextPause: false,
+      };
+      session.speechPrefetcher = this.createSpeechPrefetcher(pipeline, video, settings);
+      session.startupSpeechController = new AbortController();
+      session.prefetchStop = () => {
+        session.startupSpeechController.abort();
+        session.speechPrefetcher.stop();
       };
       ctx.onSessionCreated(session);
       ctx.setCurrentTexts("", "");
 
-      ctx.setStatusText(window.LumeoCaptionPipeline.describeCaptionQuality?.(result.meta) || (result.meta?.nativeTarget ? "Native captions" : "Caption Free"));
+      const firstSpokenCueIndex = pipeline.cues.findIndex((cue) =>
+        cue?.translated && cue.end > video.currentTime && cue.start < video.currentTime + 24
+      );
+      const firstSpokenCue = pipeline.cues[firstSpokenCueIndex];
+      if (firstSpokenCue && settings.captionTtsProvider === "minimax-tts" && settings.minimaxKey) {
+        ctx.setStatusText("正在准备首段中文朗读");
+        ctx.setOverlayState("connecting");
+        try {
+          await window.LumeoMiniMax.prefetch(firstSpokenCue.translated, {
+            apiKey: settings.minimaxKey,
+            voice: settings.minimaxVoice || "male-qn-qingse",
+            speed: settings.ttsRate || 1,
+            signal: session.startupSpeechController.signal,
+          });
+          session.readyCues.add(firstSpokenCueIndex);
+        } catch (error) {
+          if (token !== ctx.getPageToken()) return { ok: false, error: "启动已取消。" };
+          ctx.onSessionEnded("speech-preparation-failed", error?.message || "中文朗读准备失败。");
+          return { ok: false, error: error?.message || "中文朗读准备失败。" };
+        }
+      }
+      if (token !== ctx.getPageToken()) return { ok: false, error: "启动已取消。" };
+
+      ctx.setStatusText(window.LumeoCaptionPipeline.describeCaptionQuality?.(result.meta) || (result.meta?.nativeTarget ? "原生字幕" : "免费字幕"));
       ctx.setOverlayState("live");
       ctx.getTranscriptController()?.renderCaptionTranscript(result.cues || pipeline.cues || []);
       ctx.applyTierToolbar();
-      ctx.onStateChange({ running: true, paused: false, status: "Captioning" });
+      ctx.onStateChange({ running: true, paused: false, status: "正在显示字幕" });
 
       const elements = ctx.getElements();
 
       const tick = () => {
         const currentSession = ctx.getSession();
         if (currentSession?.type !== "caption" || currentSession.token !== token) return;
+        currentSession.speechPrefetcher.tick();
         const current = pipeline.cueAt(video.currentTime);
         if (current.index === currentSession.lastCueIndex) return;
         currentSession.lastCueIndex = current.index;
@@ -578,14 +759,59 @@
         }
         ctx.getTranscriptController()?.updateCaptionTranscriptHighlight(current.index);
 
-        if (settings.captionTtsProvider && settings.captionTtsProvider !== "off") {
+        if (settings.captionTtsProvider === "minimax-tts" && settings.minimaxKey &&
+            window.LumeoMiniMax.isCached?.(current.cue.translated, {
+              apiKey: settings.minimaxKey,
+              voice: settings.minimaxVoice || "male-qn-qingse",
+              speed: settings.ttsRate || 1,
+            })) currentSession.readyCues.add(current.index);
+
+        if (settings.captionTtsProvider === "minimax-tts" && settings.minimaxKey &&
+            !video.paused && !currentSession.readyCues.has(current.index)) {
+          currentSession.bufferingCueIndex = current.index;
+          currentSession.ignoreNextPause = true;
+          video.pause();
+          ctx.setStatusText("正在同步这一句的中文语音");
+          ctx.setOverlayState("connecting");
+          Promise.resolve().then(async () => {
+            const deadline = Date.now() + 20000;
+            while (!current.cue.translated && Date.now() < deadline) {
+              if (currentSession.startupSpeechController.signal.aborted) return;
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+            if (!current.cue.translated) throw new Error("这句字幕翻译超时，请稍后重试。");
+            await window.LumeoMiniMax.prefetch(current.cue.translated, {
+              apiKey: settings.minimaxKey,
+              voice: settings.minimaxVoice || "male-qn-qingse",
+              speed: settings.ttsRate || 1,
+              signal: currentSession.startupSpeechController.signal,
+            });
+          }).then(async () => {
+            if (ctx.getSession() !== currentSession || currentSession.token !== ctx.getPageToken()) return;
+            currentSession.readyCues.add(current.index);
+            currentSession.bufferingCueIndex = null;
+            currentSession.lastCueIndex = -1;
+            if (pipeline.cueAt(video.currentTime).index === current.index) await video.play();
+            else tick();
+          }).catch((error) => {
+            if (ctx.getSession() !== currentSession || currentSession.token !== ctx.getPageToken()) return;
+            currentSession.bufferingCueIndex = null;
+            ctx.setStatusText(error?.message || "中文语音准备失败");
+            ctx.setOverlayState("error");
+          });
+          return;
+        }
+
+        if (!video.paused && settings.captionTtsProvider && settings.captionTtsProvider !== "off") {
           pipeline.speakCue(current.cue, {
             provider: settings.captionTtsProvider,
-            targetLanguage: settings.targetLanguage || "vi",
+            targetLanguage: settings.targetLanguage || "zh-CN",
             googleCloudKey: settings.googleCloudKey,
             openaiKey: settings.openaiKey,
+            minimaxKey: settings.minimaxKey,
             rate: settings.ttsRate || 1,
             volume: Math.min((settings.voiceVolume ?? 100) / 100, 1),
+            syncDuration: Math.max(0.3, Number(current.cue.end) - Number(video.currentTime)),
           }).catch(() => { });
         }
       };
@@ -594,15 +820,38 @@
       tick();
 
       ctx.setYTPauseHandler(() => {
-        ctx.setStatusText("Paused");
+        if (session.ignoreNextPause) {
+          session.ignoreNextPause = false;
+          return;
+        }
+        if (session.bufferingCueIndex !== null) return;
+        session.speechPrefetcher.pause();
+        window.LumeoTTS?.stop?.();
+        session.lastCueIndex = -1;
+        ctx.setStatusText("已暂停");
         ctx.setOverlayState("paused");
-        ctx.onStateChange({ paused: true, status: "Paused" });
+        ctx.onStateChange({ paused: true, status: "已暂停" });
       });
       ctx.setYTPlayHandler(() => {
-        ctx.setStatusText("Captioning");
+        if (session.bufferingCueIndex !== null) {
+          session.ignoreNextPause = !video.paused;
+          video.pause();
+          return;
+        }
+        session.speechPrefetcher.resume();
+        session.lastCueIndex = -1;
+        tick();
+        ctx.setStatusText("正在显示字幕");
         ctx.setOverlayState("live");
-        ctx.onStateChange({ paused: false, status: "Captioning" });
+        ctx.onStateChange({ paused: false, status: "正在显示字幕" });
       });
+      try {
+        await video.play();
+      } catch {
+        ctx.setStatusText("译声已准备，请点击视频播放");
+        ctx.setOverlayState("paused");
+        ctx.onStateChange({ paused: true, status: "请点击视频播放" });
+      }
       return { ok: true };
     }
   };

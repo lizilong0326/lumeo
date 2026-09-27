@@ -839,7 +839,7 @@
 
   async function fetchSubtitles(options = {}) {
     injectSniffer();
-    const targetLanguage = options.targetLanguage || "vi";
+    const targetLanguage = options.targetLanguage || "zh-CN";
     const videoId = options.videoId || getVideoId();
     const diagnostics = options.diagnostics || {};
     if (!videoId) {

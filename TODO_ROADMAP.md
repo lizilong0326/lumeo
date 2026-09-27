@@ -1,10 +1,10 @@
-# Lumeo TODO Roadmap
+# 译幕 TODO Roadmap
 
-> Single English source of truth for Lumeo execution. Consolidates the previous `PLAN.md`, `ROADMAP.md`, `MASTER_PLAN.md`, repo archaeology, local `output/research` corpus review, and OSS research notes from May 2026.
+> 历史规划资料：下文的三档模式与部分状态已过时，不代表当前功能或承诺。当前使用方式见 [README](README.md)。
 
 ## Product goal
 
-Ship Lumeo v2 as a stable Chrome MV3 YouTube companion with three production-grade tiers:
+Ship 译幕 v2 as a stable Chrome MV3 YouTube companion with three production-grade tiers:
 
 1. **Caption** — translate YouTube captions, render bilingual subtitles, support optional TTS and no-caption STT fallback.
 2. **Standard Dub** — capture YouTube audio, process chunked STT -> translation -> TTS, play a translated dub with acceptable latency.
@@ -15,7 +15,7 @@ Expansion after store-ready: **P6 -> P7 -> P8**.
 
 ## Reference policy
 
-Local `output/research` sources are allowed for internal reuse per owner instruction. Still prefer clean adaptation over blind copy so Lumeo keeps one coherent architecture.
+Local `output/research` sources are allowed for internal reuse per owner instruction. Still prefer clean adaptation over blind copy so 译幕 keeps one coherent architecture.
 
 Best references:
 
@@ -111,7 +111,7 @@ Goal: turn `content.js` into a thin runtime router while preserving current beha
 
 1. Extract UI shell only.
    - Move DOM creation helpers and overlay shell state into `ui/overlay.js`.
-   - Keep public API small, e.g. `window.LumeoOverlay.create()` / `update()` / `destroy()`.
+   - Keep public API small, e.g. `window.译幕Overlay.create()` / `update()` / `destroy()`.
    - Verify caption, standard, realtime still render.
 2. Extract subtitle/history UI.
    - Use `youtube-gemini-translator`, `youtube-live-translate`, and `asbplayer` as references for transcript-row UX.
@@ -120,11 +120,11 @@ Goal: turn `content.js` into a thin runtime router while preserving current beha
    - Keep MiniMax/OpenAI voice data centralized.
    - Ensure popup/content do not drift on voice IDs.
 4. Extract Standard pipeline.
-   - Use existing `LumeoAudioUtils` and `LumeoKymaClient`.
+   - Use existing `译幕AudioUtils` and `译幕KymaClient`.
    - Keep chunk timing, volume behavior, and error copy unchanged first.
 5. Extract Realtime pipeline.
    - Keep Kyma/OpenAI Realtime flow unchanged first.
-   - Use `LumeoTokenGuard` to protect late WebRTC/event callbacks.
+   - Use `译幕TokenGuard` to protect late WebRTC/event callbacks.
 6. Shrink `content.js`.
    - Target: orchestration only, not business logic.
 
@@ -260,7 +260,7 @@ Status: **Docs/audits ready; manual store tasks blocked**.
   - No telemetry.
   - Keys stored locally.
   - Provider calls go directly to selected provider/Kyma.
-  - No Lumeo-operated server unless added later.
+  - No 译幕-operated server unless added later.
   - Legal/store-owner review still required before publication.
 - [x] Audit host permissions.
   - Keep only required origins.
@@ -301,7 +301,7 @@ Goal: beat basic subtitle translators with premium learning/media features.
 ### Tasks
 
 - [x] Add seekable side transcript panel.
-  - Reference: `asbplayer` and Lumen v1.
+  - Reference: `asbplayer`.
   - Rows clickable to seek video.
   - Active row highlighted.
 - [x] Add hover dictionary / word lookup.
@@ -334,7 +334,7 @@ Goal: beat basic subtitle translators with premium learning/media features.
 
 Status: **Partial** — adapter foundation and Gemini research complete; Gemini Live implementation blocked pending MV3 prototype/token strategy.
 
-Goal: evaluate Gemini Live as a Realtime alternative without coupling Lumeo to one vendor.
+Goal: evaluate Gemini Live as a Realtime alternative without coupling 译幕 to one vendor.
 
 ### Tasks
 

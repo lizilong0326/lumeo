@@ -73,7 +73,7 @@
       root.classList.toggle("is-side-collapsed", !!layout.sideCollapsed);
       root.classList.toggle("is-compact", layout.width < 560);
       if (elements.hideBtn) {
-        elements.hideBtn.textContent = layout.sideCollapsed ? "Show" : "Hide";
+        elements.hideBtn.textContent = layout.sideCollapsed ? "展开" : "收起";
       }
     }
 
@@ -86,51 +86,51 @@
       root.innerHTML = `
         <div class="ec-toolbar" data-ec-drag>
           <span class="ec-dot"></span>
-          <select class="ec-select" data-ec-language aria-label="Target language"></select>
-          <span class="ec-toolbar-cap" data-ec-tts-cap hidden>Speech</span>
-          <select class="ec-select" data-ec-voice aria-label="Voice"></select>
+          <select class="ec-select" data-ec-language aria-label="目标语言"></select>
+          <span class="ec-toolbar-cap" data-ec-tts-cap hidden>朗读</span>
+          <select class="ec-select" data-ec-voice aria-label="声音"></select>
           <span class="ec-spacer"></span>
-          <button class="ec-btn" type="button" data-ec-pip aria-label="Toggle Picture-in-Picture subtitles" title="Picture-in-Picture subtitles">PiP</button>
-          <button class="ec-btn" type="button" data-ec-settings title="Settings">⚙️</button>
-          <button class="ec-btn" type="button" data-ec-help aria-label="Keyboard shortcuts" aria-keyshortcuts="? h" title="Keyboard shortcuts (? or h)">?</button>
-          <button class="ec-btn" type="button" data-ec-hide aria-keyshortcuts="Escape" title="Collapse overlay (Esc)">Hide</button>
-          <button class="ec-btn ec-btn-primary" type="button" data-ec-stop>Stop</button>
+          <button class="ec-btn" type="button" data-ec-pip aria-label="切换画中画字幕" title="画中画字幕">PiP</button>
+          <button class="ec-btn" type="button" data-ec-settings title="设置">⚙️</button>
+          <button class="ec-btn" type="button" data-ec-help aria-label="快捷键" aria-keyshortcuts="? h" title="快捷键（? 或 h）">?</button>
+          <button class="ec-btn" type="button" data-ec-hide aria-keyshortcuts="Escape" title="收起悬浮控件（Esc）">收起</button>
+          <button class="ec-btn ec-btn-primary" type="button" data-ec-stop>停止</button>
         </div>
         <div class="ec-body" data-ec-body>
           <div class="ec-target" data-ec-target></div>
         </div>
         <div class="ec-style-popover" data-ec-settings-panel hidden>
-          <label><span>Size</span> <input type="range" data-ec-style-size min="12" max="36" step="1"><output data-ec-style-size-value></output></label>
-          <label><span>Pos</span> <input type="range" data-ec-style-position min="0" max="80" step="1"><output data-ec-style-position-value></output></label>
-          <label class="ec-style-field-select"><span>Preset</span>
+          <label><span>字号</span> <input type="range" data-ec-style-size min="12" max="36" step="1"><output data-ec-style-size-value></output></label>
+          <label><span>位置</span> <input type="range" data-ec-style-position min="0" max="80" step="1"><output data-ec-style-position-value></output></label>
+          <label class="ec-style-field-select"><span>布局</span>
             <select class="ec-select" data-ec-layout-preset>
-              <option value="stacked">Stacked (Sub+Source)</option>
-              <option value="translated-only">Translated only</option>
-              <option value="source-only">Source only</option>
+              <option value="stacked">双语叠加</option>
+              <option value="translated-only">仅显示译文</option>
+              <option value="source-only">仅显示原文</option>
             </select>
           </label>
-          <label title="Original YouTube volume">
-            <span>Orig Vol</span>
+          <label title="YouTube 原声音量">
+            <span>原声音量</span>
             <input type="range" data-ec-original-volume min="0" max="100" step="1"><output data-ec-original-volume-value></output>
           </label>
-          <label title="Translated/dub voice volume">
-            <span>Voice Vol</span>
+          <label title="中文配音音量">
+            <span>配音音量</span>
             <input type="range" data-ec-voice-volume min="0" max="100" step="1"><output data-ec-voice-volume-value></output>
           </label>
-          <label title="Mute the original YouTube audio">
-            <span>Mute Orig.</span>
+          <label title="静音 YouTube 原声">
+            <span>静音原声</span>
             <input type="checkbox" data-ec-mute-original>
           </label>
-          <label title="Show Translated">
-            <span>Show Trans.</span>
+          <label title="显示译文">
+            <span>显示译文</span>
             <input type="checkbox" data-ec-show-translated>
           </label>
-          <label title="Show Source">
-            <span>Show Source</span>
+          <label title="显示原文">
+            <span>显示原文</span>
             <input type="checkbox" data-ec-show-source>
           </label>
-          <label title="High Contrast">
-            <span>Contrast</span>
+          <label title="高对比度">
+            <span>高对比度</span>
             <input type="checkbox" data-ec-high-contrast>
           </label>
         </div>
@@ -261,7 +261,7 @@
         a.href = String(opts.cta);
         a.target = "_blank";
         a.rel = "noopener noreferrer";
-        a.textContent = String(opts.ctaLabel || "Open");
+        a.textContent = String(opts.ctaLabel || "打开");
         toast.appendChild(a);
       }
       root.appendChild(toast);
@@ -281,7 +281,7 @@
     }
 
     function showShortcutHelp() {
-      showToast("Shortcuts: Esc collapse, ?/h help, Ctrl/Cmd+Shift+L show/hide", 6000);
+      showToast("快捷键：Esc 收起；? 或 h 查看帮助；Ctrl/Cmd+Shift+L 显示或隐藏", 6000);
     }
 
     function handleShortcutKeydown(e) {

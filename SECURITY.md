@@ -1,28 +1,5 @@
-# Security Policy
+# 译幕安全说明
 
-## Supported Versions
+请勿在公开问题、截图或提交中粘贴 API 密钥、访问令牌、会话凭证和完整请求头。若发现密钥泄露，请先到相应服务商撤销密钥。
 
-The `main` branch is currently the supported version.
-
-## Reporting a Vulnerability
-
-Please do **not** open public issues for security reports.
-
-Report privately via email:
-
-- **Contact:** thanhnguyentuan2007@gmail.com
-- **Subject:** `[Lumeo][Security] <short summary>`
-
-Include:
-
-1. Vulnerability type and impact
-2. Steps to reproduce
-3. Proof of concept (if safe)
-4. Suggested mitigation
-
-## Security Best Practices
-
-- Never commit API keys, PATs, or session tokens
-- Validate all postMessage payloads and origins
-- Keep host permissions minimal in `manifest.json`
-- Revoke compromised credentials immediately
+当前项目尚未设置公开的安全报告邮箱。反馈安全问题时，请先删除复现材料中的密钥、Cookie 和其他私人数据。

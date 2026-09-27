@@ -44,6 +44,6 @@ describe("services/tts-browser.js", () => {
 
   it("throws a clear error if OpenAI TTS provider is selected but not loaded", async () => {
     await expect(api.speak("hello", "en", { provider: "openai-tts" }))
-      .rejects.toThrow("OpenAI TTS service is not loaded");
+      .rejects.toThrow("OpenAI 朗读服务未加载");
   });
 });

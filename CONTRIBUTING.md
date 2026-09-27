@@ -1,47 +1,11 @@
-# Contributing Guide
+# 参与译幕开发
 
-Thanks for contributing to **Lumeo**.
+先按 [README](README.md) 了解本地服务与扩展的安装方式。需要手动验证配音时，使用自己的 MiniMax API Key，并留意服务商费用。
 
-## Development Setup
+1. 在自己的分支上修改代码，保留原项目的 MIT 版权声明。
+2. 使用 `npm run check:all` 检查脚本语法，使用 `npm test` 运行测试。
+3. 对界面改动，检查中文文案、键盘可访问名称和 Chrome 中的实际布局。
+4. 提交问题或合并请求时，写明重现步骤与验证结果；界面改动可附截图。
+5. 不要提交 API 密钥、访问令牌或私人数据。
 
-1. Fork and clone this repo.
-2. Create a feature branch:
-   ```bash
-   git checkout -b feat/short-description
-   ```
-3. Load unpacked extension in Chrome (`chrome://extensions`).
-4. Test your change on real YouTube watch pages.
-
-## Pull Request Rules
-
-- Keep PRs focused and small.
-- Include reproduction steps and verification notes.
-- If UI is changed, include screenshots/GIF.
-- Do not commit API keys, tokens, or personal credentials.
-
-## Commit Convention
-
-Preferred style:
-
-- `feat: ...`
-- `fix: ...`
-- `docs: ...`
-- `chore: ...`
-
-## Quality Checklist
-
-Before opening PR:
-
-- [ ] No sensitive data in source or logs
-- [ ] Extension loads successfully in Chrome
-- [ ] Core subtitle flow still works
-- [ ] README/changelog updated if behavior changed
-
-## Reporting Bugs
-
-Open an issue with:
-
-- Environment (Chrome version, OS)
-- Steps to reproduce
-- Expected vs actual behavior
-- Console errors (content + service worker)
+修改内部接口、存储键或导出格式时，请考虑已有用户设置和文件的兼容性，并补充相应测试。

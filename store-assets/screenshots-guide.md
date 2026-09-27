@@ -1,50 +1,13 @@
-# Lumeo — Screenshot capture guide
+# 译幕商店截图指南
 
-Web Store needs **5 screenshots** at **1280×800** OR **640×400** (PNG, no alpha). Use the bigger size — Web Store auto-resizes; bigger looks crisper on the listing.
+这是未来 Chrome 应用商店的截图计划，当前项目尚未上架。正式提交前，请重新核对商店当时的图片尺寸和审核要求，并使用当前版本实际界面截图。
 
-Tool: macOS `Cmd+Shift+4` then drag a 1280×800 region. Or use CleanShot / Kap (mac) / ShareX (Windows) and pick a custom size. Output to `store-assets/screenshots/01-popup-idle.png`, `02-panel-caption.png`, etc.
+建议准备以下画面：
 
-> **P5 status.** Screenshot capture is manual and currently blocked until a clean local Chrome run confirms the final UI states. Do not mark the roadmap screenshot task complete until all 5 PNGs exist and match current behavior.
+1. **扩展弹窗**：显示“译幕”、MiniMax 密钥输入区、音色设置和“开始准备整片”按钮；密钥不得出现在截图中。
+2. **整片准备**：在 YouTube 视频页显示准备阶段和进度，不暴露视频私人信息。
+3. **中文播放**：展示准备完成后的中文字幕、配音面板与播放操作。
+4. **本地网页**：展示粘贴视频链接、任务进度和从当前位置播放入口。
+5. **失败恢复**：展示限流等待或继续重试等真实可操作状态，不编造处理成功画面。
 
-## The 5 screenshots
-
-### 01 — Popup idle, ready to start
-- Open any YouTube video in the background (e.g., a TED talk thumbnail visible).
-- Click the Lumeo icon. Popup is in `idle` state, key already saved.
-- Capture popup + a strip of the YouTube video behind it for context.
-- Sells: clean UI, "saved" badge, three-tier dropdown visible (Caption / Standard / Realtime), Start button highlighted.
-
-### 02 — Caption tier in action (HERO shot)
-- Free Caption tier, target Vietnamese, original English audio.
-- Pick a TED talk or Apple keynote where the captions are clean.
-- Capture the bilingual subtitle overlay + the side panel listing scrolling lines, both populated and aligned to the current video time.
-- This is the money shot for the free tier — proves the value prop without any API key.
-
-### 03 — Realtime dub translating live
-- Switch to Realtime tier, target Vietnamese, voice Marin.
-- Wait until the panel's main area shows ~2 lines of Vietnamese text and the status pill says "Translating".
-- Capture full browser at 1280×800 with the panel + a healthy slice of the YouTube player visible.
-- Make sure the dub text is meaningful and looks like a real translation, not a half-formed phrase.
-
-### 04 — Standard tier with source captions on
-- Switch to Standard tier, voice Captivating Female, language Vietnamese, toggle "Show source captions" ON.
-- Start. Wait until both the source caption (English) and the dub (Vietnamese) are populated.
-- Capture the panel showing both — proves the side-by-side mode works.
-
-### 05 — Subtitle style editor + SRT export
-- Open the Caption tier with style editor visible (font, size, color, background, stroke).
-- Show the export-ZIP button or the menu so the SRT export feature is discoverable.
-
-## Composition tips
-- YouTube player on the left, Lumeo panel on the right — natural English reading flow.
-- Target the same video in all 5 shots so the listing feels coherent. Suggestion: a recent Apple keynote or a TED talk (English narrator, clear speech, recognizable thumbnail).
-- Keep the YouTube UI clean — pause the video at a non-distracting frame, hide the YT controls (mouse-out for 3s), close any popups.
-- After capture, run through `pngcrush` or just leave as-is — Web Store doesn't care about file size as long as <16 MB each.
-
----
-
-## Promo tile (separate field)
-
-Web Store wants a **440×280 PNG** "Small promo tile" used in search results.
-
-Base source included: `store-assets/promo-tile-440x280.svg`. Export that SVG to PNG at 440×280 before Web Store submission.
+宣传图源文件为 `promo-tile-440x280.svg`。不要使用旧版英文截图或未实际验证的服务效果。

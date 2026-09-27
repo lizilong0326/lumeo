@@ -3,7 +3,7 @@
 
   if (window.LumeoSrtExport?.__loaded) return;
 
-  function sanitizeFilename(value, fallback = "lumeo-subtitles") {
+  function sanitizeFilename(value, fallback = "yimu-subtitles") {
     return String(value || fallback)
       .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
       .replace(/\s+/g, " ")
@@ -84,7 +84,7 @@
     return JSON.stringify({
       version: 1,
       exportedAt: new Date().toISOString(),
-      format: "lumeo-subtitles",
+      format: "yimu-subtitles",
       title: options.title || "video",
       cues: normalizeCues(cuesInput),
     }, null, 2);

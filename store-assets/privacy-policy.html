@@ -1,120 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Lumeo — Privacy Policy</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>译幕 — 隐私说明</title>
 <style>
-:root { color-scheme: light dark; }
-body { font: 16px/1.6 -apple-system, system-ui, "Segoe UI", sans-serif;
-  max-width: 760px; margin: 40px auto; padding: 0 24px; color: #1a1a1f; }
-@media (prefers-color-scheme: dark) {
-  body { background: #0b0b0d; color: #e8e8ea; }
-  a { color: #ff9b5e; }
-}
-h1 { font-size: 28px; margin-bottom: 4px; }
-.sub { color: #888; margin-bottom: 32px; }
-h2 { font-size: 18px; margin-top: 28px; }
-h3 { font-size: 15px; margin-top: 18px; margin-bottom: 4px; }
-ul { padding-left: 22px; }
-li { margin-bottom: 8px; }
-code { background: rgba(127,127,127,0.15); padding: 1px 6px; border-radius: 4px; font-size: 14px; }
-.tldr { background: rgba(255,155,94,0.1); border-left: 3px solid #ff9b5e; padding: 14px 18px; border-radius: 6px; margin: 20px 0; }
-footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid rgba(127,127,127,0.2); color: #888; font-size: 14px; }
+:root{color-scheme:light dark}body{font:16px/1.7 system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 24px;color:#1a1a1f}h1{font-size:28px}h2{font-size:20px;margin-top:30px}li{margin:8px 0}code{background:#8882;padding:1px 5px;border-radius:4px}@media(prefers-color-scheme:dark){body{background:#0b0b0d;color:#e8e8ea}a{color:#ff9b5e}}
 </style>
 </head>
 <body>
-
-<h1>Lumeo — Privacy Policy</h1>
-<p class="sub">Last updated: 2026-05-12. Draft policy for store review, not legal advice.</p>
-
-<div class="tldr">
-<strong>TL;DR.</strong> Lumeo does not sell data or run tracking. API keys you enter (Kyma, Gemini, OpenRouter, Groq, Hugging Face, OpenAI, Google Cloud, LibreTranslate, Soniox) stay on your own device. Subtitle text or audio you choose to translate is sent directly to the provider you pick for the purpose of producing the translation. We have no Lumeo-operated server, no analytics, no tracking.
-</div>
-
-<h2>What Lumeo is</h2>
-<p>Lumeo is a Chrome extension that adds bilingual captions and live AI voice-over to YouTube videos. It offers three tiers — pick whichever fits your needs and budget. The extension runs entirely in your browser; there is no Lumeo-operated backend.</p>
-
-<h2>What data is processed, by tier</h2>
-
-<h3>Caption tier (free, BYOK optional)</h3>
+<h1>译幕 — 隐私说明</h1>
+<p>更新日期：2026 年 9 月 27 日。本说明描述从 GitHub 源码运行的本地预览版。</p>
+<p>译幕由 Chrome 扩展和运行在你电脑上的本地服务组成。项目没有由维护者运营的远程后台、分析服务或广告跟踪。中文配音会调用 MiniMax API，并可能产生费用。</p>
+<h2>处理的数据</h2>
 <ul>
-  <li><strong>YouTube subtitle text.</strong> Lumeo reads the captions YouTube already publishes for the video (or, if none exist and you provide a Soniox key, transcribes the tab audio you share via <code>getDisplayMedia</code>). The text is sent only to the translate provider you choose: Google Translate (free/no key), Gemini, OpenRouter, Groq, OpenAI, Google Cloud Translation, or LibreTranslate.</li>
-  <li><strong>API keys (optional).</strong> If you opt into Gemini, OpenRouter, Groq, Hugging Face, OpenAI, Google Cloud, LibreTranslate, Soniox, or Google Cloud Text-to-Speech, the keys you provide stay in <code>chrome.storage.local</code> and are sent only to those providers as the <code>Authorization</code> header or provider-specific key parameter.</li>
-  <li><strong>Per-video subtitle cache.</strong> The translated text for each video you process is stored locally so you don't pay to re-translate on revisit. Wipe it from the panel's clear-cache button.</li>
+<li><strong>有可读字幕：</strong>扩展读取当前 YouTube 视频的字幕，将视频链接、时间轴与字幕交给本机服务；本机服务将待翻译文本发给 MiniMax，并将译文发给 MiniMax 合成中文语音。</li>
+<li><strong>没有可读字幕：</strong>本机服务通过 yt-dlp 读取视频信息并下载音轨，将音频片段发给 MiniMax 识别，再提交识别文字用于翻译和配音。视频读取也可能因 YouTube 限制而失败。</li>
+<li><strong>播放：</strong>整片处理完成后，本地网页或扩展按视频时间显示中文字幕，并从本机服务读取配音文件播放。</li>
 </ul>
-
-<h3>Standard tier (Kyma key required)</h3>
+<h2>本地保存</h2>
+<p>从扩展填写的 MiniMax API Key 和界面设置保存在 <code>chrome.storage.local</code>，创建任务时密钥会发送到本机服务，并仅在该服务进程内存中保留；从本地网页填写的密钥也只保留在当前服务进程内存中。本机服务把已读取的字幕、音轨、识别结果、译文和配音文件保存在 <code>local-service/data/</code>，供失败后复用；停止或重启服务不会自动删除这些文件。该目录已被项目的 Git 忽略规则排除。扩展的字幕缓存与部分界面偏好分别存放在浏览器本地存储中。</p>
+<p>你可以清除扩展字幕缓存、删除扩展的本地数据，或自行删除 <code>local-service/data/</code> 中的处理文件。删除缓存后，再次处理同一视频可能重新调用 MiniMax。</p>
+<h2>第三方服务</h2>
+<p>当前整片中文配音主流程使用 MiniMax 国内 API。MiniMax 会接收识别所需的音频片段、待翻译文字与待合成的译文；其数据保留、计费和限流以 MiniMax 的说明为准。扩展源码仍保留部分旧服务的权限和代码，未来提交 Chrome 应用商店前会重新审查与精简。若手动开启“使用本机 Chrome 登录状态读取视频”，yt-dlp 会读取 Chrome 的 Cookie；默认不开启，也不会将 Cookie 发给 MiniMax。</p>
+<h2>浏览器权限</h2>
 <ul>
-  <li><strong>YouTube audio.</strong> When you press Start, Lumeo captures audio from the active video via <code>HTMLMediaElement.captureStream()</code>, splits it into ~5-second chunks, and uploads each chunk to Kyma which routes through Whisper (transcription) → Gemini (translation) → MiniMax (text-to-speech). The translated voice plays back over the original audio. Lumeo itself stores no audio.</li>
-  <li><strong>Kyma API key.</strong> Stored locally with <code>TRUSTED_CONTEXTS</code> access level so that page scripts on youtube.com cannot read it.</li>
+<li><code>activeTab</code> 和 <code>scripting</code>：在你操作的 YouTube 标签页中显示控件和字幕。</li>
+<li><code>storage</code>：记住设置、密钥与字幕缓存。</li>
+<li>站点访问权限：读取 YouTube 视频与字幕，连接本机服务及当前启用的第三方服务。具体域名见 <code>manifest.json</code>。</li>
 </ul>
-
-<h3>Realtime tier (Kyma key required)</h3>
-<ul>
-  <li><strong>YouTube audio.</strong> Captured the same way and streamed peer-to-peer over WebRTC directly to OpenAI Realtime, after Kyma mints a short-lived ephemeral token. Sub-second latency. Audio does not pass through any Lumeo-operated server.</li>
-  <li><strong>Kyma API key.</strong> Same handling as Standard tier. The Kyma key itself is never sent to OpenAI; only the ephemeral token is.</li>
-</ul>
-
-<h3>Common to all tiers</h3>
-<ul>
-  <li><strong>Overlay layout.</strong> Position, size, and panel preferences stored in <code>localStorage</code> for the youtube.com origin. Cosmetic only.</li>
-  <li><strong>Settings.</strong> Tier, language, voice, volume, and subtitle-style preferences stored in <code>chrome.storage.local</code>. Never leave your device.</li>
-</ul>
-
-<h2>What data is NOT collected</h2>
-<ul>
-  <li>No telemetry, analytics, crash reports, or usage statistics.</li>
-  <li>No browsing history or YouTube account information is sent to Lumeo.</li>
-  <li>No personal identifiers, IP logging, cookies, or fingerprints.</li>
-  <li>No advertising, ad targeting, or third-party trackers.</li>
-</ul>
-
-<h2>Third-party processors</h2>
-<p>The provider that processes your data depends entirely on which tier and which translate / TTS / STT provider you select in the panel:</p>
-<ul>
-  <li><strong>Kyma API</strong> (<code>api.kymaapi.com</code>) — gateway for the Standard and Realtime tiers. Bills your Kyma balance. See <a href="https://kymaapi.com/privacy" target="_blank" rel="noopener">Kyma's privacy policy</a>.</li>
-  <li><strong>OpenAI</strong> (<code>api.openai.com</code>) — Realtime tier (peer-to-peer audio); also chat completions for the OpenAI translate option in the Caption tier when you supply an OpenAI key.</li>
-  <li><strong>Gemini</strong> (<code>generativelanguage.googleapis.com</code>) — used only if you provide a Gemini API key and choose Gemini translation.</li>
-  <li><strong>OpenRouter</strong> (<code>openrouter.ai</code>) — used only if you provide an OpenRouter key and choose OpenRouter translation, including the free model router when available.</li>
-  <li><strong>Groq</strong> (<code>api.groq.com</code>) — used only if you provide a Groq key and choose Groq translation/STT options.</li>
-  <li><strong>Hugging Face</strong> (<code>api-inference.huggingface.co</code>, <code>huggingface.co</code>) — planned advanced provider option, used only if you provide a Hugging Face token and select it.</li>
-  <li><strong>Google Translate</strong> (<code>translate.googleapis.com</code>) — free public endpoint used by the Caption tier's default translate option. Subtitle text only.</li>
-  <li><strong>Google Cloud</strong> (<code>translation.googleapis.com</code>, <code>texttospeech.googleapis.com</code>) — used only if you provide a Google Cloud API key and pick the corresponding option.</li>
-  <li><strong>LibreTranslate</strong> (<code>libretranslate.com</code>, <code>localhost</code>, or a URL you provide) — used only if you choose LibreTranslate translation.</li>
-  <li><strong>Soniox</strong> (<code>stt-rt.soniox.com</code>) — used only if you provide a Soniox key and the video has no captions, in which case Lumeo transcribes shared tab audio in real time.</li>
-</ul>
-<p>Each provider processes your data per its own privacy terms. Lumeo is not a party to those terms — your account and direct relationship with each provider are.</p>
-
-<h2>Data retention</h2>
-<p>Lumeo has no server-side retention because it has no Lumeo-operated backend. Local settings, keys, and per-video caption cache stay in browser storage until you clear them or uninstall the extension. Provider-side retention follows each provider's policy. Sessions on the dub tiers automatically end after 60 minutes; closing the tab also ends the session.</p>
-
-<h2>Permissions</h2>
-<ul>
-  <li><code>activeTab</code>, <code>scripting</code> — to inject the overlay panel into the YouTube tab when you press Start.</li>
-  <li><code>storage</code> — to remember your settings and any keys you save across sessions.</li>
-  <li>Host permissions for <code>youtube.com</code>, <code>api.kymaapi.com</code>, <code>api.openai.com</code>, <code>generativelanguage.googleapis.com</code>, <code>openrouter.ai</code>, <code>api.groq.com</code>, <code>api-inference.huggingface.co</code>, <code>huggingface.co</code>, <code>translate.googleapis.com</code>, <code>translation.googleapis.com</code>, <code>texttospeech.googleapis.com</code>, <code>stt-rt.soniox.com</code>, <code>libretranslate.com</code>, <code>localhost</code>, and <code>127.0.0.1</code> — to read YouTube subtitles, capture YouTube audio after user action, and reach the providers listed above.</li>
-</ul>
-
-<h2>Your rights and choices</h2>
-<ul>
-  <li>Stop a session at any time with the Stop button or by closing the tab.</li>
-  <li>Remove any key from the popup or panel at any time, or uninstall the extension to wipe all locally stored data.</li>
-  <li>Use the Caption tier with the free Google Translate option without providing any account or key.</li>
-</ul>
-
-<h2>Children</h2>
-<p>Lumeo is not directed at children under 13. The extension processes no personal information that would identify a user of any age.</p>
-
-<h2>Changes to this policy</h2>
-<p>If we materially change how Lumeo handles data we will update this page and bump the date at the top. Continued use after a change constitutes acceptance.</p>
-
-<h2>Contact</h2>
-<p>Questions or requests: please open an issue at <a href="https://github.com/ThanhNguyxnOrg/lumeo/issues" target="_blank" rel="noopener">the project's GitHub issues</a>.</p>
-
-<footer>
-Lumeo is open-source. Source: <a href="https://github.com/ThanhNguyxnOrg/lumeo" target="_blank" rel="noopener">github.com/ThanhNguyxnOrg/lumeo</a>.
-</footer>
-
+<p>你可以在扩展中停止当前任务；本地服务仍会运行，直到你关闭它。重启本地服务会使内存中的任务编号失效，但不会自动清除已保存的处理文件。</p>
 </body>
 </html>

@@ -40,6 +40,7 @@ export function createChromeMock(options = {}) {
     },
     tabs: {
       query: vi.fn(async () => options.tabs || [{ id: 1, url: "https://www.youtube.com/watch?v=test", title: "Test video" }]),
+      get: vi.fn(async (tabId) => (options.tabs || []).find((tab) => tab.id === tabId)),
       sendMessage: vi.fn(async (tabId, message) => options.onTabMessage?.(tabId, message) ?? { ok: true }),
       onRemoved: { addListener: vi.fn((listener) => tabRemovedListeners.push(listener)) },
       onUpdated: { addListener: vi.fn((listener) => tabUpdatedListeners.push(listener)) },

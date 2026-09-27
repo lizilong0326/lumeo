@@ -1,5 +1,7 @@
 # Gemini Live P7 Research
 
+> Historical research from an earlier realtime-dubbing design. Gemini Live is not part of the current product; see [README](../README.md) for supported features.
+
 Date checked: 2026-05-12
 
 ## Verdict
@@ -24,7 +26,7 @@ Recommended status: keep Gemini Live disabled behind the adapter seam until a pr
   - output: 16-bit PCM, 24 kHz, little-endian
 - Session duration/reconnect behavior needs prototype validation.
 - Live API maturity remains preview; production failure modes need measurement.
-- A backend or trusted token minting path is required for ephemeral tokens. Lumeo currently has no Lumeo-operated backend by design.
+- A backend or trusted token minting path is required for ephemeral tokens. 译幕 currently has no dedicated backend for this experimental integration.
 
 ## Adapter impact
 

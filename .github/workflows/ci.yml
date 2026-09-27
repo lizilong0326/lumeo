@@ -61,8 +61,13 @@ jobs:
             services/kyma-client.js \
             pipelines/caption.js \
             pipelines/caption-orchestrator.js \
-            pipelines/realtime.js \
-            pipelines/standard.js; do
+            pipelines/standard.js \
+            ui/local-panel.js \
+            ui/local-playback.js \
+            ui/full-prep.js \
+            services/minimax.js \
+            local-service/server.mjs \
+            local-service/public/index.html; do
             test -f "$f" || { echo "::error::missing $f"; exit 1; }
           done
           for f in icons/icon-16.png icons/icon-48.png icons/icon-128.png; do

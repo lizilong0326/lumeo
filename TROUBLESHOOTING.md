@@ -1,57 +1,33 @@
-# Lumeo Troubleshooting
+# 译幕故障排查
 
-## Developer Mode Reload
+## 更新代码后仍显示旧界面
 
-After changing code locally:
+打开 `chrome://extensions`，在“译幕”卡片上点击**重新加载**，然后刷新已打开的 YouTube 页面。旧页面可能仍保留更新前的内容脚本。
 
-1. Open `chrome://extensions`.
-2. Click the reload icon on the Lumeo extension card.
-3. Reload the YouTube tab.
-4. Open Lumeo again.
+## 弹窗显示不完整
 
-Reason: YouTube tabs that were open before the extension reload can keep an older content script until the tab is refreshed.
+关闭弹窗，重新加载扩展，再打开弹窗。若仍被裁切，请记录 Chrome 版本、系统缩放比例和截图。
 
-## Popup Shows Only a Thin Slice
+## 字幕没有出现
 
-This usually means Chrome is still showing an older popup document or the popup is stuck after an extension reload.
+先确认视频可以在 YouTube 播放，并检查本地服务 `http://127.0.0.1:8791/api/health` 是否可访问。译幕优先读取整片 YouTube 字幕；没有可读字幕时，本地服务会下载音轨，用 MiniMax 生成整片字幕。字幕和中文语音都准备完毕后才开放中文播放。
 
-Fix:
+## 中文配音没有声音
 
-1. Close the popup.
-2. Reload the extension card.
-3. Reopen the popup.
+确认已填写有效的 MiniMax 密钥，且整片准备任务已完成。检查原声与配音音量，以及页面上的错误提示。服务商可能对账户余额或请求频率有限制。
 
-The popup is designed at `420x540` for developer mode so it should fit without clipping.
+## 配音进度停在某个数字
 
-## Caption Dependencies Not Loaded
+旧版整片任务有并发错误处理问题：一条配音失败后，另一条成功的请求可能把任务状态覆盖回“正在配音”，使进度永久停住。本地服务现已在单条请求超时后报错，对限流和临时服务错误重试，并在并发任务全部收尾后固定失败状态。更新服务后，在译幕中停止旧任务并重新开始；已生成的字幕、翻译和音频文件会从本机缓存复用。若再次失败，请记录页面显示的第几条配音及 MiniMax 错误，勿分享 API 密钥。
 
-If the popup or overlay says:
+## 出现 `rate limit exceeded(RPM)`
 
-```text
-Caption dependencies not loaded: ...
-```
+MiniMax 达到每分钟请求上限时，译幕会显示剩余等待秒数并自动重试；等待时也可直接点“跳过第 N 句继续”。若连续重试仍失败，可点“继续重试”，已完成的字幕和配音会从本机缓存复用。跳过的句子仍显示中文字幕，但没有中文配音。更新本地服务会使旧任务失效，需要重新输入密钥创建任务，已保存的处理结果仍可复用。
 
-Reload the extension card and the YouTube tab. The background service worker also attempts to inject missing dependencies automatically, but a tab reload is the cleanest reset.
+## 其他扩展遮住了页面
 
-## "Download this video" Overlay on YouTube
+YouTube 上出现的“下载视频”等控件可能来自其他扩展。排查界面冲突时，可暂时停用相关视频辅助扩展，再刷新 YouTube 页面。
 
-That overlay is not part of Lumeo. It is likely injected by another browser extension. Disable other YouTube/video helper extensions when testing Lumeo UI.
+## 反馈问题
 
-## Caption Tier Finds No Subtitles
-
-Use Standard Dub when the video has no captions. Caption Free works best when YouTube has published a caption track for the video.
-
-## Debugging Console
-
-For service worker errors:
-
-1. Open `chrome://extensions`.
-2. Find Lumeo.
-3. Click `service worker`.
-4. Copy the red console error.
-
-For YouTube content script errors:
-
-1. Open DevTools on the YouTube tab.
-2. Check the Console tab.
-3. Filter by `Lumeo`, `content.js`, or extension errors.
+提供 Chrome 版本、视频链接、所选模式、服务商、错误文案及重现步骤。请勿发送 API 密钥或完整网络请求头。

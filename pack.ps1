@@ -9,7 +9,7 @@ Set-Location $root
 
 $manifest = Get-Content "manifest.json" -Raw | ConvertFrom-Json
 $version = $manifest.version
-$out = Join-Path $OutDir "lumeo-v$version.zip"
+$out = Join-Path $OutDir "yimu-v$version.zip"
 
 if (Test-Path $out) {
   Remove-Item $out -Force
@@ -18,8 +18,8 @@ if (Test-Path $out) {
 $excludeNames = @(
   ".git",
   "node_modules",
+  "local-service",
   "_design_reference",
-  "_echoly_extracted",
   "ext",
   "output",
   ".vscode",
@@ -34,7 +34,7 @@ $excludeFiles = @(
   "release.sh"
 )
 
-$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("lumeo-pack-" + [System.Guid]::NewGuid().ToString("N"))
+$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("yimu-pack-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $temp | Out-Null
 
 try {
@@ -48,7 +48,7 @@ try {
   Compress-Archive -Path (Join-Path $temp "*") -DestinationPath $out -Force
   $itemCount = (Get-ChildItem -Recurse -File $temp | Measure-Object).Count
   $size = "{0:N1} MB" -f ((Get-Item $out).Length / 1MB)
-  Write-Host "Packed $out ($size, $itemCount files)"
+  Write-Host "已打包 $out ($size, $itemCount 个文件)"
 } finally {
   Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

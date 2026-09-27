@@ -1,5 +1,7 @@
 # Cross-browser scope and smoke checklist
 
+> Historical planning document. Its three-tier smoke checklist describes an earlier design and is not a current test plan. See [README](../README.md) for supported features and setup.
+
 ## Target decision
 
 Firefox support is **future/unsupported** until API validation proves the core flows. Current product target remains Chrome MV3.

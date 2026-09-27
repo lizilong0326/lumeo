@@ -54,7 +54,7 @@ describe("pipelines/caption.js", () => {
     const result = await pipeline.start({ videoId: "missing", targetLanguage: "vi", targetLanguageName: "Vietnamese" });
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("YouTube did not expose any caption tracks");
+    expect(result.error).toContain("此视频没有提供字幕轨道");
     expect(result.diagnostics.reason).toBe("no-tracks");
     expect(window.LumeoTranslate.translateBatch).not.toHaveBeenCalled();
   });
@@ -73,9 +73,9 @@ describe("pipelines/caption.js", () => {
     const result = await pipeline.start({ videoId: "timedtext", targetLanguage: "vi" });
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("YouTube captions are temporarily unavailable");
-    expect(result.error).toContain("Retry");
-    expect(result.error).toContain("fallback");
+    expect(result.error).toContain("YouTube 字幕暂不可用");
+    expect(result.error).toContain("重试");
+    expect(result.error).toContain("备用方案");
   });
 
   it("translates source cues, writes cache, and finds active cue by time", async () => {
@@ -98,6 +98,36 @@ describe("pipelines/caption.js", () => {
     expect(getCache().entries["abc::vi::google-free::en"]).toMatchObject({ version: api.CACHE_VERSION });
     expect(getCache().entries["abc::vi::google-free::en"].updatedAt).toBeGreaterThan(0);
     expect(getCache().stats.ttlMs).toBe(api.CACHE_TTL_MS);
+  });
+
+  it("returns after translating the playhead window while finishing later cues in background", async () => {
+    const sourceCues = [
+      { start: 0, end: 1, text: "first" },
+      { start: 1, end: 2, text: "second" },
+      { start: 2, end: 3, text: "third" },
+      { start: 3, end: 4, text: "fourth" },
+    ];
+    const { window, api, getCache } = await setup({
+      subtitles: { videoId: "abc", sourceLanguage: "en", nativeTarget: false, cues: sourceCues },
+    });
+    let releaseNext;
+    window.LumeoTranslate.translateBatch = vi.fn()
+      .mockResolvedValueOnce(["第二", "第三"])
+      .mockImplementationOnce(() => new Promise((resolve) => { releaseNext = resolve; }))
+      .mockResolvedValueOnce(["第一"]);
+    const pipeline = api.create();
+    const result = await pipeline.start({
+      videoId: "abc", targetLanguage: "zh-CN", translateProvider: "minimax",
+      progressive: true, playheadSeconds: 1.3, batchSize: 2,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.cues.map((cue) => cue.translated || "")).toEqual(["", "第二", "第三", ""]);
+    expect(window.LumeoTranslate.translateBatch.mock.calls[0][0]).toEqual(["second", "third"]);
+    releaseNext(["第四"]);
+    await pipeline.backgroundTranslation;
+    expect(pipeline.cues.map((cue) => cue.translated)).toEqual(["第一", "第二", "第三", "第四"]);
+    expect(getCache().entries["abc::zh-CN::minimax::en"].meta.resume).toBe(false);
   });
 
   it("uses cached translated cues without calling translation", async () => {
@@ -208,10 +238,10 @@ describe("pipelines/caption.js", () => {
   it("describes caption source and cache quality", async () => {
     const { api } = await setup();
 
-    expect(api.describeCaptionQuality({ nativeTarget: true, sourceLanguage: "vi" })).toBe("YouTube native · direct");
-    expect(api.describeCaptionQuality({ cached: true, sourceLanguage: "en" })).toBe("YouTube captions · cached");
-    expect(api.describeCaptionQuality({ sourceLanguage: "en", tracks: [{ languageCode: "en", kind: "asr" }] })).toBe("Auto captions · translated");
-    expect(api.describeCaptionQuality(null)).toBe("Unknown captions");
+    expect(api.describeCaptionQuality({ nativeTarget: true, sourceLanguage: "vi" })).toBe("YouTube 原生字幕 · 直接使用");
+    expect(api.describeCaptionQuality({ cached: true, sourceLanguage: "en" })).toBe("YouTube 字幕 · 已缓存");
+    expect(api.describeCaptionQuality({ sourceLanguage: "en", tracks: [{ languageCode: "en", kind: "asr" }] })).toBe("自动生成字幕 · 已翻译");
+    expect(api.describeCaptionQuality(null)).toBe("未知字幕");
   });
 
   it("delegates speech and export helpers", async () => {
@@ -226,7 +256,7 @@ describe("pipelines/caption.js", () => {
     pipeline.stop();
 
     expect(window.LumeoTTS.speak).toHaveBeenCalledWith("xin chào", "vi", expect.objectContaining({ volume: 0.5 }));
-    expect(window.LumeoSrtExport.downloadBlob).toHaveBeenCalledWith(expect.any(window.Blob), "my_video_lumeo_subtitles.zip");
+    expect(window.LumeoSrtExport.downloadBlob).toHaveBeenCalledWith(expect.any(window.Blob), "my_video_yimu_subtitles.zip");
     expect(window.LumeoTTS.stop).toHaveBeenCalled();
     expect(window.LumeoSonioxSTT.stop).toHaveBeenCalled();
   });

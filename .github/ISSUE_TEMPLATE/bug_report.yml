@@ -1,33 +1,33 @@
-name: Bug report
-description: Report a reproducible bug in Lumeo
-title: "[Bug] "
+name: 问题反馈
+description: 反馈可以重现的译幕问题
+title: "[问题] "
 labels: ["bug"]
 body:
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened?
-      description: Clear and concise description of the bug.
+      label: 出现了什么问题？
+      description: 请简要描述实际看到的情况。
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: 重现步骤
       placeholder: |
-        1. Go to ...
-        2. Click ...
-        3. See error ...
+        1. 打开……
+        2. 点击……
+        3. 出现……
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Expected behavior
+      label: 预期结果
     validations:
       required: true
   - type: input
     id: environment
     attributes:
-      label: Environment
-      placeholder: Chrome version, OS
+      label: 使用环境
+      placeholder: Chrome 版本、操作系统版本

@@ -51,7 +51,7 @@ describe("services/tts-openai.js", () => {
 
   it("returns null for empty text and throws on missing keys", async () => {
     expect(await api.synthesize("   ", { apiKey: "openai-key" })).toBeNull();
-    await expect(api.synthesize("hello", {})).rejects.toThrow("OpenAI API key is missing.");
+    await expect(api.synthesize("hello", {})).rejects.toThrow("缺少 OpenAI API 密钥。");
   });
 
   it("surfaces OpenAI errors with status and truncated detail", async () => {
@@ -62,7 +62,7 @@ describe("services/tts-openai.js", () => {
     }));
 
     await expect(api.synthesize("hello", { apiKey: "bad" }))
-      .rejects.toThrow("OpenAI TTS 401: bad key");
+      .rejects.toThrow("OpenAI 朗读出错（401）：bad key");
   });
 
   it("plays synthesized audio and stop pauses current playback", async () => {

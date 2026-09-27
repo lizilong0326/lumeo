@@ -4,9 +4,9 @@
   if (window.LumeoCaptionFallbackChoice?.__loaded) return;
 
   function fallbackTitle(diagnostics = {}) {
-    if (diagnostics.reason === "no-target-language") return "No matching caption language";
-    if (diagnostics.reason === "timedtext-empty-body") return "YouTube returned empty captions";
-    return "No YouTube captions found";
+    if (diagnostics.reason === "no-target-language") return "没有匹配的字幕语言";
+    if (diagnostics.reason === "timedtext-empty-body") return "YouTube 返回了空字幕";
+    return "没有找到 YouTube 字幕";
   }
 
   function createButton(doc, className, text, onClick) {
@@ -23,12 +23,12 @@
     const trackInfo = doc.createElement("div");
     trackInfo.className = "ec-choice-tracks";
     const head = doc.createElement("strong");
-    head.textContent = `Detected tracks (${tracks.length})`;
+    head.textContent = `检测到 ${tracks.length} 条字幕轨道`;
     trackInfo.appendChild(head);
     const list = doc.createElement("ul");
     for (const track of tracks.slice(0, 12)) {
       const item = doc.createElement("li");
-      const tag = track.kind === "asr" ? " · auto" : "";
+      const tag = track.kind === "asr" ? " · 自动生成" : "";
       item.textContent = `${track.languageCode}${tag}${track.name ? ` — ${track.name}` : ""}`;
       list.appendChild(item);
     }
@@ -46,17 +46,18 @@
     title.textContent = fallbackTitle(diagnostics);
 
     const copy = doc.createElement("small");
-    copy.textContent = options.reason || "This video did not expose a readable caption track.";
+    copy.textContent = options.reason || "此视频没有可读取的字幕轨道。";
 
     const trackInfo = createTrackInfo(doc, diagnostics.tracks);
     const actions = doc.createElement("div");
     actions.className = "ec-choice-actions";
     actions.append(
-      createButton(doc, "ec-choice-btn", "Try Groq Whisper", () => options.onGroq?.()),
-      createButton(doc, "ec-choice-btn", "Try Soniox STT", () => options.onSoniox?.()),
-      createButton(doc, "ec-choice-btn", "Switch to Standard Dub", () => options.onStandard?.()),
-      createButton(doc, "ec-choice-btn ec-choice-btn-muted", "Retry caption fetch", () => options.onRetry?.()),
-      createButton(doc, "ec-choice-btn ec-choice-btn-muted", "Cancel", () => options.onCancel?.()),
+      createButton(doc, "ec-choice-btn", "用 MiniMax 识别并中文配音", () => options.onMiniMax?.()),
+      createButton(doc, "ec-choice-btn", "尝试 Groq Whisper 语音识别", () => options.onGroq?.()),
+      createButton(doc, "ec-choice-btn", "尝试 Soniox 语音识别", () => options.onSoniox?.()),
+      createButton(doc, "ec-choice-btn", "切换到标准配音", () => options.onStandard?.()),
+      createButton(doc, "ec-choice-btn ec-choice-btn-muted", "重新获取字幕", () => options.onRetry?.()),
+      createButton(doc, "ec-choice-btn ec-choice-btn-muted", "取消", () => options.onCancel?.()),
     );
 
     wrap.append(title, copy);

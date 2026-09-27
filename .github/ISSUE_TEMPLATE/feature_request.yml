@@ -1,23 +1,23 @@
-name: Feature request
-description: Suggest an idea to improve the extension
-title: "[Feature] "
+name: 功能建议
+description: 提出改进译幕的建议
+title: "[功能] "
 labels: ["enhancement"]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem statement
-      description: What problem are you trying to solve?
+      label: 遇到的问题
+      description: 你希望解决什么使用问题？
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed solution
-      description: Describe your preferred solution.
+      label: 建议的做法
+      description: 请描述你希望如何解决。
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered
+      label: 考虑过的其他做法

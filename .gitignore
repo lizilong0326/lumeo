@@ -2,15 +2,12 @@
 .DS_Store
 Thumbs.db
 
-# Vendor source archives kept locally for reference, not committed
-echoly-main.zip
-_echoly_extracted/
+# Local design and development files
 _design_reference/
 ext/
 
 # Built release zips
 *.zip
-!store-assets/*.zip
 
 # Editor
 .vscode/
@@ -47,3 +44,7 @@ pnpm-debug.log*
 # Python
 __pycache__/
 *.pyc
+
+# 译幕本地服务产生的音轨、配音及独立依赖
+local-service/.venv/
+local-service/data/

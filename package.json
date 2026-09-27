@@ -1,13 +1,15 @@
 {
-  "name": "lumeo",
+  "name": "yimu",
   "private": true,
-  "version": "2.0.0",
-  "description": "Lumeo — Captions & AI Dub for YouTube. Test harness for the vanilla-JS extension.",
+  "version": "1.2.3",
+  "description": "译幕：YouTube 中文字幕与中文配音扩展的测试工具。",
   "type": "module",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
+    "local:setup": "bash local-service/setup.sh",
+    "local:serve": "bash local-service/run.sh",
     "check": "node --check content.js && node --check background.js && node --check popup.js && node --check lib/token-guard.js && node --check lib/audio-utils.js && node --check services/stt-groq.js && node --check services/tts-openai.js",
     "check:all": "node scripts/check-all.mjs"
   },

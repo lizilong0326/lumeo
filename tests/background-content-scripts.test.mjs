@@ -24,11 +24,13 @@ describe("background content script injection", () => {
     for (const key of [
       "browserApi",
       "captionPipeline",
-      "realtimePipeline",
       "standardPipeline",
       "overlayModule",
       "subtitleOverlayModule",
       "captionOrchestrator",
+      "localPanel",
+      "localPlayback",
+      "fullPrep",
     ]) {
       expect(content).toContain(`${key}: !!window.`);
       expect(background).toContain(`reply.${key}`);

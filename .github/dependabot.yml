@@ -6,7 +6,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "06:00"
-      timezone: "Asia/Ho_Chi_Minh"
+      timezone: "Asia/Shanghai"
     open-pull-requests-limit: 5
     pull-request-branch-name:
       separator: "-"
@@ -29,7 +29,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "06:00"
-      timezone: "Asia/Ho_Chi_Minh"
+      timezone: "Asia/Shanghai"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "ci(deps)"

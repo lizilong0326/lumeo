@@ -1,4 +1,4 @@
-// Lumeo — background service worker.
+// 译幕 — background service worker.
 // Single source of truth for session state across the popup and content script.
 //
 // Popup is a passive renderer: it never reads chrome.storage to decide running
@@ -9,8 +9,7 @@
 // BACKGROUND_STATE_UPDATE pushes to popup, CONTENT_UPDATE pushes to the active
 // YT tab.
 //
-// Inherits the Echoly v0.2.1 state machine (2026-05-08 baseline) and extends
-// it with Caption-tier scaffolding for the v2.0 merge.
+// Coordinates caption translation and dubbing sessions across extension views.
 
 import "./lib/browser-api.js";
 
@@ -18,12 +17,11 @@ const browserApi = globalThis.LumeoBrowserApi;
 
 const DEFAULT_SETTINGS = {
   tier: "caption",
-  targetLanguage: "vi",
-  translateProvider: "google-free",
-  sttProvider: "none",
-  captionTtsProvider: "off",
-  dubProvider: "kyma",
-  realtimeProvider: "kyma-realtime",
+  targetLanguage: "zh-CN",
+  translateProvider: "minimax",
+  sttProvider: "minimax-asr",
+  captionTtsProvider: "minimax-tts",
+  dubProvider: "minimax-dub",
   openaiKey: "",
   openaiModel: "gpt-4o-mini",
   geminiKey: "",
@@ -44,10 +42,10 @@ const DEFAULT_SETTINGS = {
   minimaxKey: "",
   replicateKey: "",
   translationContext: "",
-  realtimeVoice: "marin",
   // Standard tier (Minimax chunked pipeline). Default voice is Magnetic Man,
   // the male voice Son ranked highest in the 2026-05-08 listening test.
-  standardVoice: "English_magnetic_voiced_man",
+  standardVoice: "male-qn-qingse",
+  useChromeCookies: false,
   originalVolume: 18,
   voiceVolume: 100,
   showSource: false,
@@ -61,7 +59,8 @@ const state = {
   connecting: false,
   paused: false,
   tabId: null,
-  status: "Ready",
+  videoId: null,
+  status: "已就绪",
   errorMessage: "",
   errorCode: "",
   missingProviders: [],
@@ -92,7 +91,7 @@ function broadcastToPopup() {
 }
 
 async function relayToContent(tabId, message) {
-  if (!tabId) throw new Error("No active tab to relay to.");
+  if (!tabId) throw new Error("没有可连接的标签页。");
   return browserApi.sendTabMessage(tabId, message);
 }
 
@@ -115,14 +114,82 @@ async function fetchJSON(url, init = {}) {
   return data;
 }
 
+async function localServiceRequest(message, sender) {
+  if (!isYouTubeUrl(sender.tab?.url)) throw new Error("仅支持在 YouTube 视频页连接本地配音。");
+  const jobId = String(message.jobId || "");
+  const port = Number(message.port);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("本地配音连接信息无效。");
+  }
+  const origin = `http://127.0.0.1:${port}`;
+  if (message.action === "health") return fetchJSON(`${origin}/api/health`);
+  if (message.action === "create") {
+    const videoId = new URL(sender.tab.url).searchParams.get("v");
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId || "")) throw new Error("当前页面不是 YouTube 视频。");
+    return fetchJSON(`${origin}/api/jobs`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "full", url: `https://www.youtube.com/watch?v=${videoId}`,
+        apiKey: String(message.apiKey || ""), voice: String(message.voice || "male-qn-qingse"),
+        title: String(message.title || ""), duration: Number(message.duration || 0),
+        sourceLanguage: String(message.sourceLanguage || ""),
+        useChromeCookies: message.useChromeCookies === true,
+        cues: Array.isArray(message.cues) ? message.cues : undefined,
+      }),
+    });
+  }
+  if (!/^[a-f0-9-]{36}$/.test(jobId)) throw new Error("本地配音连接信息无效。");
+  const base = `http://127.0.0.1:${port}/api/jobs/${jobId}`;
+  if (message.action === "status") return fetchJSON(base);
+  if (message.action === "timeline") return fetchJSON(`${base}/timeline`);
+  if (message.action === "retry" || message.action === "skip") {
+    return fetchJSON(`${base}/${message.action === "retry" ? "restart" : "skip"}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    });
+  }
+  if (message.action === "cancel") return fetchJSON(base, { method: "DELETE" });
+  if (message.action === "playhead") {
+    const seconds = Number(message.seconds);
+    if (!Number.isFinite(seconds) || seconds < 0) throw new Error("视频进度无效。");
+    return fetchJSON(`${base}/playhead`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seconds }),
+    });
+  }
+  if (message.action === "audio") {
+    const segment = Number(message.segment);
+    const cue = Number(message.cue);
+    if (!Number.isInteger(segment) || !Number.isInteger(cue) || segment < 0 || cue < 0) {
+      throw new Error("本地配音片段编号无效。");
+    }
+    const response = await fetch(`${base}/audio/${segment}/${cue}`);
+    if (!response.ok) throw new Error(`配音音频读取失败：HTTP ${response.status}`);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    let base64 = "";
+    for (let index = 0; index < bytes.length; index += 8190) {
+      base64 += btoa(String.fromCharCode(...bytes.subarray(index, index + 8190)));
+    }
+    return { base64, byteLength: bytes.length };
+  }
+  throw new Error("未知本地配音操作。");
+}
+
 function isYouTubeUrl(url) {
   return typeof url === "string" && /^https?:\/\/[^/]*youtube\.com\//.test(url);
 }
 
+function videoIdFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const id = parsed.pathname === "/watch" ? parsed.searchParams.get("v") : null;
+    return /^[A-Za-z0-9_-]{11}$/.test(id || "") ? id : null;
+  } catch { return null; }
+}
+
 async function activeYouTubeTab() {
   const [tab] = await browserApi.queryTabs({ active: true, currentWindow: true });
-  if (!tab) throw new Error("No active tab.");
-  if (!isYouTubeUrl(tab.url)) throw new Error("Open a YouTube video first.");
+  if (!tab) throw new Error("没有当前标签页。");
+  if (!isYouTubeUrl(tab.url)) throw new Error("请先打开 YouTube 视频。");
   return tab;
 }
 
@@ -135,6 +202,7 @@ const CONTENT_SCRIPT_FILES = [
   "ui/voice-picker.js",
   "ui/caption-fallback-choice.js",
   "services/providers.js",
+  "services/minimax.js",
   "services/translate.js",
   "services/srt-export.js",
   "services/tts-browser.js",
@@ -145,11 +213,13 @@ const CONTENT_SCRIPT_FILES = [
   "services/kyma-client.js",
   "pipelines/caption.js",
   "pipelines/caption-orchestrator.js",
-  "pipelines/realtime.js",
   "pipelines/standard.js",
+  "ui/local-panel.js",
+  "ui/local-playback.js",
+  "ui/full-prep.js",
   "content.js",
 ];
-const EXPECTED_CONTENT_VERSION = "1.0.0";
+const EXPECTED_CONTENT_VERSION = "1.2.3";
 const CAPTION_CACHE_KEY = "lumeoCaptionCacheV1";
 
 async function readCaptionCache() {
@@ -173,13 +243,13 @@ async function ensureContentScript(tabId) {
         reply.version === EXPECTED_CONTENT_VERSION &&
         reply.browserApi &&
         reply.captionPipeline &&
-        reply.realtimePipeline &&
         reply.standardPipeline &&
         reply.translateService &&
         reply.captionService &&
         reply.kymaService &&
         reply.srtService &&
         reply.ttsService &&
+        reply.minimaxService &&
         reply.sonioxService &&
         reply.audioUtils &&
         reply.tokenGuard &&
@@ -188,7 +258,10 @@ async function ensureContentScript(tabId) {
         reply.overlayModule &&
         reply.subtitleOverlayModule &&
         reply.captionFallbackChoice &&
-        reply.captionOrchestrator) {
+        reply.captionOrchestrator &&
+        reply.localPanel &&
+        reply.localPlayback &&
+        reply.fullPrep) {
       return;
     }
     shouldReset = !!reply?.ok;
@@ -200,6 +273,7 @@ async function ensureContentScript(tabId) {
       await chrome.scripting.executeScript({
         target: { tabId },
         func: () => {
+          try { window.YimuLocalPlayback?.close?.(); } catch {}
           delete window.__lumeoContentVersion;
           for (const key of [
             "LumeoBrowserApi",
@@ -210,6 +284,7 @@ async function ensureContentScript(tabId) {
             "LumeoVoicePicker",
             "LumeoCaptionFallbackChoice",
             "LumeoProviders",
+            "LumeoMiniMax",
             "LumeoTranslate",
             "LumeoSrtExport",
             "LumeoTTS",
@@ -222,10 +297,14 @@ async function ensureContentScript(tabId) {
             "LumeoCaptionOrchestrator",
             "LumeoRealtimePipeline",
             "LumeoStandardPipeline",
+            "YimuPanel",
+            "YimuLocalPlayback",
+            "YimuFullPrep",
+            "__yimuLocalPlayback",
           ]) {
             try { delete window[key]; } catch {}
           }
-          document.querySelectorAll(".ec-root").forEach((el) => el.remove());
+          document.querySelectorAll(".ec-root, .yimu-panel, .yimu-panel-restore").forEach((el) => el.remove());
         },
       });
     } catch {
@@ -250,11 +329,34 @@ async function ensureContentScript(tabId) {
 
 async function loadSettings() {
   const stored = await chrome.storage.local.get(DEFAULT_SETTINGS);
+  const migration = await chrome.storage.local.get("yimuDomesticPipelineV1");
+  if (!migration.yimuDomesticPipelineV1) {
+    Object.assign(stored, {
+      translateProvider: "minimax",
+      sttProvider: "minimax-asr",
+      captionTtsProvider: "minimax-tts",
+      dubProvider: "minimax-dub",
+      standardVoice: "male-qn-qingse",
+    });
+    await chrome.storage.local.set({
+      yimuDomesticPipelineV1: true,
+      translateProvider: stored.translateProvider,
+      sttProvider: stored.sttProvider,
+      captionTtsProvider: stored.captionTtsProvider,
+      dubProvider: stored.dubProvider,
+      standardVoice: stored.standardVoice,
+    });
+  }
+  if (stored.tier === "realtime") {
+    stored.tier = "caption";
+    await chrome.storage.local.set({ tier: "caption" });
+  }
   Object.assign(state, stored);
   return stored;
 }
 
 async function persistSettings(partial) {
+  if (partial.tier === "realtime") partial = { ...partial, tier: "caption" };
   Object.assign(state, partial);
   const persistable = {};
   for (const k of Object.keys(DEFAULT_SETTINGS)) {
@@ -267,7 +369,14 @@ async function persistSettings(partial) {
 
 async function handleStart(settings) {
   if (state.running || state.connecting) {
-    return { ok: false, error: "Session already running." };
+    // A quick SPA switch can reach Start before the tab update callback.
+    const current = await activeYouTubeTab().catch(() => null);
+    const nextVideoId = videoIdFromUrl(current?.url);
+    if (state.running && current?.id === state.tabId && nextVideoId && nextVideoId !== state.videoId) {
+      await handleStop();
+    } else {
+      return { ok: false, error: "已有会话正在运行。" };
+    }
   }
   await persistSettings(settings || {});
   let tab;
@@ -276,13 +385,16 @@ async function handleStart(settings) {
   } catch (err) {
     return { ok: false, error: err.message };
   }
+  const activeVideoId = videoIdFromUrl(tab.url);
+  if (!activeVideoId) return { ok: false, error: "请先打开 YouTube 视频播放页。" };
   state.tabId = tab.id;
+  state.videoId = activeVideoId;
   state.connecting = true;
   state.errorMessage = "";
   state.errorCode = "";
   state.missingProviders = [];
   state.slotsMissingKeys = [];
-  state.status = "Connecting";
+  state.status = "正在连接";
   broadcastToPopup();
 
   try {
@@ -294,11 +406,13 @@ async function handleStart(settings) {
     if (!reply?.ok) {
       state.connecting = false;
       state.running = false;
-      state.errorMessage = reply?.error || "Could not start translation.";
+      state.errorMessage = reply?.error || "无法启动翻译。";
       state.errorCode = reply?.errorCode || "";
       state.missingProviders = reply?.missingProviders || [];
       state.slotsMissingKeys = reply?.slotsMissingKeys || [];
       state.status = state.errorMessage;
+      state.tabId = null;
+      state.videoId = null;
       broadcastToPopup();
       return {
         ok: false,
@@ -311,7 +425,8 @@ async function handleStart(settings) {
     }
     state.connecting = false;
     state.running = true;
-    state.status = "Translating";
+    state.status = settings?.targetLanguage === "zh-CN" || settings?.targetLanguage === "zh"
+      ? "正在准备整片中文配音" : "正在翻译";
     broadcastToPopup();
     return { ok: true, state: snapshot() };
   } catch (err) {
@@ -322,6 +437,8 @@ async function handleStart(settings) {
     state.missingProviders = err.missingProviders || [];
     state.slotsMissingKeys = err.slotsMissingKeys || [];
     state.status = state.errorMessage;
+    state.tabId = null;
+    state.videoId = null;
     broadcastToPopup();
     return { ok: false, error: state.errorMessage };
   }
@@ -336,7 +453,7 @@ async function handleStop() {
   state.errorCode = "";
   state.missingProviders = [];
   state.slotsMissingKeys = [];
-  state.status = "Stopped";
+  state.status = "已停止";
   broadcastToPopup();
   if (tabId) {
     try {
@@ -346,6 +463,7 @@ async function handleStop() {
     }
   }
   state.tabId = null;
+  state.videoId = null;
   return { ok: true, state: snapshot() };
 }
 
@@ -356,7 +474,7 @@ async function handleUpdateSettings(settings) {
     state.errorCode = "";
     state.missingProviders = [];
     state.slotsMissingKeys = [];
-    state.status = "Ready";
+    state.status = "已就绪";
   }
   broadcastToPopup();
   if (state.tabId && (state.running || state.connecting)) {
@@ -420,7 +538,8 @@ function handleContentEvent(message) {
     state.connecting = false;
     state.paused = false;
     state.tabId = null;
-    state.status = message.reason || "Stopped";
+    state.videoId = null;
+    state.status = message.reason || "已停止";
     broadcastToPopup();
   }
 }
@@ -465,7 +584,7 @@ function startSonioxWebSocket(apiKey, langHints) {
   };
 
   sonioxWs.onerror = () => {
-    forwardToSonioxTab({ action: "sonioxError", error: "WebSocket connection failed" });
+    forwardToSonioxTab({ action: "sonioxError", error: "实时连接失败" });
   };
 
   sonioxWs.onclose = () => {
@@ -542,6 +661,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Content-originated messages (have sender.tab).
   if (sender.tab) {
+    if (message?.type === "YIMU_LOCAL_SERVICE") {
+      localServiceRequest(message, sender)
+        .then((data) => sendResponse({ ok: true, data }))
+        .catch((error) => sendResponse({ ok: false, error: error?.message || String(error) }));
+      return true;
+    }
     handleContentEvent(message);
     sendResponse?.({ ok: true });
     return false;
@@ -558,7 +683,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             state.errorCode = "";
             state.missingProviders = [];
             state.slotsMissingKeys = [];
-            state.status = "Ready";
+            state.status = "已就绪";
           }
           sendResponse({ ok: true, state: snapshot() });
           break;
@@ -584,7 +709,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
         default:
-          sendResponse({ ok: false, error: "Unknown message: " + message?.type });
+          sendResponse({ ok: false, error: "未知消息：" + message?.type });
       }
     } catch (err) {
       sendResponse({ ok: false, error: err?.message || String(err) });
@@ -606,9 +731,17 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (tabId !== state.tabId) return;
   if (!changeInfo.url) return;
-  // YT is a SPA; URL change happens for /watch?v= switches too.
-  // Stop on any URL change so the new video starts clean.
-  void handleStop();
+  // Time stamps, chapters, and hash changes on the same video keep its job.
+  if (videoIdFromUrl(changeInfo.url) === state.videoId) return;
+  const activeVideoId = state.videoId;
+  void chrome.tabs.get(tabId).then((tab) => {
+    // A delayed update from the previous video must not stop a new session.
+    if (state.tabId === tabId && state.videoId === activeVideoId && videoIdFromUrl(tab.url) !== activeVideoId) {
+      void handleStop();
+    }
+  }).catch(() => {
+    if (state.tabId === tabId && state.videoId === activeVideoId) void handleStop();
+  });
 });
 
 void loadSettings();

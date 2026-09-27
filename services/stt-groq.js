@@ -1,4 +1,4 @@
-// Lumeo Groq STT service — OpenAI-compatible speech-to-text fallback for
+// 译幕 Groq STT service — OpenAI-compatible speech-to-text fallback for
 // Caption tier videos that expose no caption track. Preferred over the
 // Soniox fallback because Groq's Whisper Large v3 Turbo runs at ~216x
 // real-time and costs ~$0.02/hour versus Soniox at ~$0.12/hour.
@@ -23,7 +23,7 @@
 
   function assertKey(apiKey) {
     const key = String(apiKey || "").trim();
-    if (!key) throw new Error("Groq API key is missing.");
+    if (!key) throw new Error("缺少 Groq API 密钥。");
     return key;
   }
 
@@ -76,30 +76,35 @@
       this.abortController = new AbortController();
       this.recorder = null;
       this.stopped = false;
+      this.paused = false;
+      this.epoch = 0;
     }
 
     start() {
       if (this.recorder) return;
       const audioUtils = window.LumeoAudioUtils;
       if (!audioUtils) {
-        throw new Error("LumeoAudioUtils not loaded — load lib/audio-utils.js first.");
+        throw new Error("音频组件未加载，请重新加载译幕扩展。");
       }
       const mime = audioUtils.pickRecorderMime();
-      if (!mime) throw new Error("No supported MediaRecorder mime type.");
+      if (!mime) throw new Error("浏览器不支持所需的音频录制格式。");
       this.recorder = new MediaRecorder(this.stream, { mimeType: mime });
       this.recorder.ondataavailable = async (event) => {
-        if (this.stopped) return;
+        if (this.stopped || this.paused) return;
+        const epoch = this.epoch;
+        const signal = this.abortController.signal;
         const blob = event.data;
         if (!blob || blob.size < MIN_CHUNK_BYTES) return;
         try {
           const wav = await audioUtils.webmBlobToWav(blob);
+          if (this.stopped || this.paused || epoch !== this.epoch) return;
           const result = await transcribeBlob(wav, {
             apiKey: this.apiKey,
             model: this.model,
             language: this.language,
-            signal: this.abortController.signal,
+            signal,
           });
-          if (!this.stopped && result.text) this.onText(result);
+          if (!this.stopped && !this.paused && epoch === this.epoch && result.text) this.onText(result);
         } catch (err) {
           if (err?.name === "AbortError" || this.stopped) return;
           try {
@@ -113,6 +118,7 @@
       // Whisper does not need to reassemble container fragments.
       const cycle = () => {
         if (this.stopped || !this.recorder) return;
+        if (this.paused) { setTimeout(cycle, 300); return; }
         try {
           this.recorder.start();
           setTimeout(() => {
@@ -129,6 +135,20 @@
         }
       };
       cycle();
+    }
+
+    pause() {
+      if (this.paused || this.stopped) return;
+      this.paused = true;
+      this.epoch += 1;
+      this.abortController.abort();
+      try { if (this.recorder?.state === "recording") this.recorder.stop(); } catch {}
+    }
+
+    resume() {
+      if (!this.paused || this.stopped) return;
+      this.abortController = new AbortController();
+      this.paused = false;
     }
 
     stop() {

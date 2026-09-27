@@ -1,22 +1,22 @@
-## Summary
+## 改动概述
 
-<!-- What does this PR change? -->
+<!-- 这次改动解决了什么问题？ -->
 
-## Why
+## 原因
 
-<!-- Why is this change needed? -->
+<!-- 为什么需要这次改动？ -->
 
-## Changes
+## 主要改动
 
 - 
 - 
 
-## Verification
+## 验证
 
-- [ ] Loaded unpacked extension successfully
-- [ ] Subtitle flow tested on YouTube watch page
-- [ ] No sensitive data introduced
+- [ ] 已成功加载解压后的扩展
+- [ ] 已在 YouTube 视频页检查字幕流程
+- [ ] 未提交密钥或私人数据
 
-## Screenshots / Recording (if UI changed)
+## 截图或录屏（界面改动时填写）
 
-<!-- Add screenshots/GIF here -->
+<!-- 在此添加截图或录屏 -->

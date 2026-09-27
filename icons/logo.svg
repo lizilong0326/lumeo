@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">译幕</title>
+  <desc id="desc">蓝色圆角方形中，白色 Y 下方写着译幕。</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#52c0ff"/>
+      <stop offset="0.47" stop-color="#168dff"/>
+      <stop offset="1" stop-color="#1755db"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="29" fill="url(#blue)"/>
+  <path d="M41 30 64 56 87 30M64 56v23" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="64" y="112" fill="#fff" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="700" letter-spacing="1">译幕</text>
+</svg>

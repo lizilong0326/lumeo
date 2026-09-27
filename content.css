@@ -1,24 +1,23 @@
-/* Lumeo — in-page overlay.
-   Draggable, resizable panel docked to the YouTube page. The .ec- class prefix
-   is preserved from the Echoly v0.2.1 baseline so the merge diff stays
-   reviewable; treat it as the namespace prefix for the in-page overlay. */
+/* 译幕 — in-page overlay.
+   Draggable, resizable panel docked to the YouTube page.
+   The .ec- class prefix is the namespace for in-page controls. */
 
 :root {
-  --lumeo-bg: #101113;
-  --lumeo-panel: #16181c;
-  --lumeo-panel-2: #1c1f24;
-  --lumeo-line: #26292f;
-  --lumeo-line-soft: #1f2227;
-  --lumeo-ivory: #f2ede3;
-  --lumeo-ivory-dim: #c9c3b6;
-  --lumeo-muted: #7a7c82;
-  --lumeo-muted-deep: #54565b;
-  --lumeo-accent: #ff6a1a;
-  --lumeo-accent-dim: #b24a12;
+  --lumeo-bg: #0d1016;
+  --lumeo-panel: #191e27;
+  --lumeo-panel-2: #272f3e;
+  --lumeo-line: #303745;
+  --lumeo-line-soft: #252c39;
+  --lumeo-ivory: #f6f7fb;
+  --lumeo-ivory-dim: #d5dce8;
+  --lumeo-muted: #a4adbd;
+  --lumeo-muted-deep: #7d8797;
+  --lumeo-accent: #78b2ff;
+  --lumeo-accent-dim: #2f6fcb;
   --lumeo-live: #ff3b30;
-  --lumeo-ok: #9dbe2a;
-  --lumeo-warn: #f5b642;
-  --lumeo-danger: #ef4444;
+  --lumeo-ok: #65d5a9;
+  --lumeo-warn: #ffca78;
+  --lumeo-danger: #ff8787;
   --lumeo-focus-ring: 0 0 0 2px var(--lumeo-bg), 0 0 0 4px var(--lumeo-accent);
   --lumeo-target-min: 44px;
   --lumeo-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -34,13 +33,9 @@
   color: var(--lumeo-ivory);
   -webkit-font-smoothing: antialiased;
   border: 1px solid var(--lumeo-line);
-  border-radius: 10px;
-  background:
-    linear-gradient(var(--lumeo-line-soft) 1px, transparent 1px),
-    linear-gradient(90deg, var(--lumeo-line-soft) 1px, transparent 1px),
-    var(--lumeo-bg);
-  background-size: 42px 42px;
-  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.7);
+  border-radius: 20px;
+  background: var(--lumeo-bg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
   display: flex;
   flex-direction: column;
   overflow: visible;
@@ -82,15 +77,15 @@
 .ec-mark {
   width: 22px;
   height: 22px;
-  border-radius: 5px;
-  background: var(--lumeo-accent);
+  border-radius: 7px;
+  background: linear-gradient(145deg, #55aeff, #0868ef);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 0 -2px var(--lumeo-accent-dim);
+  box-shadow: 0 5px 12px rgba(8, 120, 249, .22);
 }
-.ec-mark svg { width: 13px; height: 13px; color: var(--lumeo-bg); }
+.ec-mark svg { width: 13px; height: 13px; color: #fff; }
 .ec-wordmark {
   font-family: var(--lumeo-display);
   font-size: 13px;
@@ -119,7 +114,7 @@
   font-size: 11px;
   padding: 4px 22px 4px 8px;
   border: 1px solid var(--lumeo-line);
-  border-radius: 4px;
+  border-radius: 10px;
   cursor: pointer;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path stroke='%237A7C82' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M2 4l3 3 3-3'/></svg>");
   background-repeat: no-repeat;
@@ -128,7 +123,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.ec-select:hover { border-color: #333841; }
+.ec-select:hover { border-color: var(--lumeo-accent); }
 .ec-select:focus-visible,
 .ec-btn:focus-visible,
 .ec-choice-btn:focus-visible,
@@ -149,7 +144,7 @@
   font-weight: 600;
   padding: 4px 9px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 140ms ease;
@@ -158,9 +153,9 @@
 .ec-btn-primary {
   background: var(--lumeo-accent);
   color: var(--lumeo-bg);
-  box-shadow: 0 4px 0 -2px var(--lumeo-accent-dim);
+  box-shadow: 0 6px 16px rgba(8, 120, 249, .18);
 }
-.ec-btn-primary:hover { background: #ff7a2f; }
+.ec-btn-primary:hover { background: #9bc8ff; }
 
 .ec-target {
   font-family: var(--lumeo-display);
@@ -241,7 +236,7 @@
   padding: 8px 10px;
   text-transform: uppercase;
 }
-.ec-choice-btn:hover { background: #ff7a2f; }
+.ec-choice-btn:hover { background: #9bc8ff; }
 .ec-choice-btn-muted {
   color: var(--lumeo-ivory);
   background: var(--lumeo-panel-2);
@@ -287,7 +282,7 @@
   padding: 14px;
   background: var(--lumeo-panel);
   border: 1px solid var(--lumeo-line);
-  border-radius: 8px;
+  border-radius: 18px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
 }
 .ec-style-popover[hidden] { display: none; }
@@ -504,7 +499,7 @@
   max-width: 82%;
   width: max-content;
   padding: 6px 16px;
-  border-radius: 4px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.78);
   text-align: center;
   pointer-events: auto;
@@ -662,4 +657,76 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ec-root[data-state="live"] .ec-dot { animation: none; }
+}
+
+/* Local-service controls shown on the YouTube page. */
+.yimu-panel {
+  position: fixed;
+  top: 76px;
+  right: 18px;
+  z-index: 2147483647;
+  width: min(344px, calc(100vw - 36px));
+  max-height: min(620px, calc(100vh - 92px));
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid #303745;
+  border-radius: 22px;
+  background: #191e27;
+  color: #f6f7fb;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .38);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+.yimu-panel[hidden], .yimu-panel button[hidden], .yimu-panel-restore[hidden] { display: none !important; }
+.yimu-panel * { box-sizing: border-box; }
+.yimu-panel-header { display: flex; align-items: center; gap: 10px; cursor: grab; touch-action: none; user-select: none; }
+.yimu-panel-header.is-dragging { cursor: grabbing; }
+.yimu-panel-mark { width: 33px; height: 33px; flex: none; display: grid; place-items: center; border-radius: 10px; background: linear-gradient(135deg, #52c0ff, #168dff 47%, #1755db); box-shadow: 0 5px 12px rgba(8, 120, 249, .22); }
+.yimu-panel-mark svg { width: 100%; height: 100%; }
+.yimu-panel-header strong { flex: 1; font-size: 15px; font-weight: 730; letter-spacing: -.025em; }
+.yimu-panel-close { flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #b8c4d5; font: 26px/1 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; cursor: pointer; }
+.yimu-panel-close:hover { background: #303745; color: white; }
+.yimu-panel-restore { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; padding: 10px 14px; border: 1px solid #526278; border-radius: 999px; background: #191e27; color: #f6f7fb; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); font: 650 12px/1.3 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; cursor: pointer; }
+.yimu-panel-restore:hover { background: #272f3e; }
+.yimu-panel-close:focus-visible, .yimu-panel-restore:focus-visible { outline: 3px solid rgba(120, 178, 255, .5); outline-offset: 2px; }
+.yimu-panel-status { margin: 13px 0 16px; color: #a4adbd; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+.yimu-panel-progress { display: grid; gap: 7px; margin: -5px 0 16px; }
+.yimu-panel-progress-label { color: #c5d7ee; font-size: 12px; }
+.yimu-panel-progress progress { display: block; width: 100%; height: 8px; appearance: none; border: 0; border-radius: 999px; overflow: hidden; background: #303c4f; }
+.yimu-panel-progress progress::-webkit-progress-bar { background: #303c4f; border-radius: 999px; }
+.yimu-panel-progress progress::-webkit-progress-value { background: linear-gradient(90deg, #52c0ff, #78b2ff); border-radius: 999px; }
+.yimu-panel-progress progress:indeterminate { background: linear-gradient(90deg, #303c4f 0%, #78b2ff 48%, #303c4f 100%); background-size: 200% 100%; animation: yimu-progress-sweep 1.6s linear infinite; }
+@keyframes yimu-progress-sweep { to { background-position: -200% 0; } }
+.yimu-panel-actions { display: grid; gap: 9px; }
+.yimu-panel-button { min-height: 44px; width: 100%; padding: 9px 13px; border: 0; border-radius: 12px; font: 690 13px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif; cursor: pointer; }
+.yimu-panel-button:disabled { opacity: .5; cursor: not-allowed; }
+.yimu-panel-button:not(:disabled):hover { filter: brightness(1.08); }
+.yimu-panel-button:focus-visible, .yimu-panel-more summary:focus-visible { outline: 3px solid rgba(120, 178, 255, .5); outline-offset: 2px; }
+.yimu-panel-button-primary { background: #78b2ff; color: #071b38; box-shadow: 0 8px 18px rgba(8, 120, 249, .18); }
+.yimu-panel-button-secondary { background: #272f3e; color: #dbe7fa; }
+.yimu-panel-button-text { background: transparent; color: #78b2ff; }
+.yimu-panel-button-danger { background: transparent; color: #ff8787; text-align: left; }
+.yimu-panel-more { margin-top: 10px; border-top: 1px solid #303745; }
+.yimu-panel-more summary { display: flex; align-items: center; justify-content: space-between; min-height: 38px; color: #a4adbd; font-size: 12px; list-style: none; cursor: pointer; }
+.yimu-panel-more summary::-webkit-details-marker { display: none; }
+.yimu-panel-more summary::after { content: "⌄"; font-size: 17px; }
+.yimu-panel-more[open] summary::after { transform: rotate(180deg); }
+.yimu-panel-more .yimu-panel-button { min-height: 36px; }
+
+/* Keep the floating caption toolbar quiet so the video stays primary. */
+.ec-root .ec-toolbar { padding-inline: 10px; }
+.ec-root .ec-toolbar [data-ec-language],
+.ec-root .ec-toolbar [data-ec-help] { display: none; }
+.ec-root .ec-style-popover { border-radius: 17px; }
+.ec-root .ec-choice-btn { border-radius: 10px; font-family: var(--lumeo-sans); font-size: 12px; letter-spacing: 0; text-transform: none; }
+.ec-root .ec-choice-tracks { border-radius: 10px; font-family: var(--lumeo-sans); }
+.ec-root .ec-toast { border-radius: 10px; }
+
+@media (max-width: 520px) {
+  .yimu-panel { top: 62px; right: 12px; width: calc(100vw - 24px); max-height: calc(100vh - 74px); }
+  .yimu-panel-restore { right: 12px; bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yimu-panel-progress progress:indeterminate { animation: none; }
 }

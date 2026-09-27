@@ -6,7 +6,9 @@ const ROOT = process.cwd();
 const SKIP_DIRS = new Set([
   ".git",
   ".sisyphus",
+  ".venv",
   "coverage",
+  "data",
   "node_modules",
   "output",
 ]);
@@ -22,7 +24,7 @@ async function collectJsFiles(dir) {
       continue;
     }
 
-    if (entry.isFile() && entry.name.endsWith(".js")) {
+    if (entry.isFile() && /\.(?:js|mjs)$/.test(entry.name)) {
       files.push(join(dir, entry.name));
     }
   }

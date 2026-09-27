@@ -1,137 +1,94 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## 未发布 — 本地预览版改进
 
-The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+- 扩展启动流程增加本地服务检查；准备面板可拖动、关闭，并在任务创建后复用为配音面板。
+- 修复 YouTube 站内切换视频时旧任务绑定可能影响新任务，以及同一视频调整时间参数时误停任务的问题。
+- 增加常用 MiniMax 普通话音色及自定义音色 ID；本地网页保留直接填写音色 ID 的入口。
+- README 明确本地服务、Chrome 扩展与 MiniMax API Key 的使用条件。
 
-## [2.0.0-beta.12] - 2026-05-11 — Compact toolbar + in-video overlay
+## 1.2.3 — 合并配音与组内时间轴
 
-### Changed
+- 整片字幕翻译完成后，将相邻字幕合成最多 8 条、45 秒的一组；每组向 MiniMax 请求一次语音，默认至少间隔 3 秒再发起下一组请求，可用 `YIMU_TTS_MIN_INTERVAL_MS` 调整。
+- 读取 MiniMax 返回的配音时间戳，将同一组音频映射回原视频各条字幕。YouTube 原页和本地页共用组音频缓存；暂停、倍速、拖动进度时按字幕在组内的偏移位置同步。
+- 已生成的组音频和时间轴保存在本机。某组失败可重试；跳过会保留该组全部中文字幕，并继续后续配音。进度和限流等待提示改为显示组及字幕范围。
+- 如果 MiniMax 未返回配音时间戳，按译文长度估算组内位置；极长译文仍可能需要明显加速，音画无法保证逐字同步。
 
-- **Panel redesigned to settings-only toolbar.** Removed branding/title, transcript history, and all in-panel subtitle text. The `.ec-side` and `.ec-history` sections are completely removed from the DOM. The panel now contains only: language/voice selectors, Export/Hide/Stop buttons, and control toggles (Audio, Subtitles, Size).
-- **In-video subtitle overlay (`.lumeo-video-sub`)** is now the sole subtitle display. Rendered inside `#movie_player` with bilingual support (translated + original), line-clamping, and `aria-live="polite"` for accessibility.
-- **Control toggles added:** Mute original audio, show/hide translated subtitles, show/hide original subtitles, font size slider. All persisted in `localStorage`.
-- DOM selectors in `services/captions.js` updated for YouTube's May 2026 redesign (new caption container classes, timestamp format changes).
-- Caption rendering switched from full-DOM rebuilds to incremental append-only model to reduce UI lag.
+## 1.2.2 — 限流等待时可跳过
 
-### Fixed
+- 自动重试等待中显示剩余秒数，并允许立即跳过当前受限的配音句子，无需等到三次尝试全部失败。
+- 跳过后继续生成后续配音；该句仍保留中文字幕。
 
-- Subtitle text overflow on long sentences (added `max-height` + `-webkit-line-clamp`).
-- Panel no longer renders lyrics/transcript — all subtitle rendering goes exclusively to the in-video overlay.
+## 1.2.1 — 配音限流恢复
 
----
+- 识别 MiniMax 在 HTTP 200 响应中返回的 `rate limit exceeded(RPM)`，自动等待并重试，页面显示等待进度。
+- 自动重试仍失败时，可在 YouTube 原页或本地页继续重试，复用已经生成的字幕、翻译和语音文件。
+- 也可跳过失败的这一句继续处理；该句保留中文字幕，没有中文配音。
 
-## [2.0.0-beta.3] - 2026-05-09 — Caption tier merge + design reference port
+## 本地服务修复 — 整片配音进度停住
 
-This release is the first functional merge of the best parts of Lumen v1 and Echoly v0.2.1 under the Lumeo brand.
+- 修复并行语音请求失败后被其他完成请求覆盖，导致进度停在固定数字的问题。
+- MiniMax 语音请求增加 90 秒超时；对 HTTP 429 和临时服务错误自动重试，失败时显示具体字幕序号。
+- 将同时进行的语音合成请求从 3 路调至 2 路；重新创建任务时复用已完成的本地语音文件。
 
-### Added
+## 1.2.0 — 整片字幕与配音准备
 
-- Ported the latest user-provided design reference into the vanilla extension UI:
-  - popup now uses the media-remote / subtitle-tool visual direction instead of the old orange glass UI;
-  - in-page overlay now uses the graphite transcript/timeline style system;
-  - no React, Vite, Tailwind, or shadcn runtime from the design export was added to the extension.
-- Added `ROADMAP.md` with the full source analysis, feature merge matrix, 3-tier architecture, phase plan, AI provider plan, and cleanup checklist.
-- Added `DESIGN_BRIEF.md` with the finalized UI/UX direction for future design iterations.
-- Added Caption-tier services:
-  - `services/providers.js` — canonical provider/mode/key registry so Mode, Engine, Key Vault, and Fallback are no longer conflated.
-  - `services/captions.js` — YouTube caption track detection, timedtext sniff fallback, XML parser, native target-language track merge.
-  - `services/translate.js` — Google Free, Gemini, OpenRouter, Groq, OpenAI, Google Cloud Translation, LibreTranslate.
-  - `services/tts-browser.js` — Browser SpeechSynthesis + Google Cloud Chirp3-HD TTS.
-  - `services/stt-soniox.js` — content-side tab audio capture + PCM bridge for Soniox fallback.
-  - `services/srt-export.js` — SRT + ZIP export.
-  - `services/kyma-client.js` — shared Kyma error parsing, session heartbeat, and session end helpers for the upcoming Standard/Realtime module split.
-  - `pipelines/caption.js` — Caption tier orchestrator with local cache and AbortController cancellation.
-- Added provider key vault fields in the popup for Kyma, Gemini, OpenRouter, Groq, Hugging Face, OpenAI, Google Cloud, LibreTranslate, and Soniox.
-- Added typed startup errors (`missing-caption-track`, `missingProviders`) so the popup can open/highlight the relevant key vault section instead of relying on error-string regexes.
-- Added Caption Free mode to the popup and content runtime. Main Caption Free mode now uses Google Free by default; BYOK caption engines live under Advanced rather than the main mode controls.
-- Added caption transcript side panel with clickable seek rows, active-row highlight, Export ZIP button, and a small caption style popover.
-- Added `pack.ps1` so Windows contributors can build the Web Store zip without WSL/Git Bash.
+- 有字幕先读取整片字幕；无字幕时先识别完整音轨，建立细粒度字幕时间轴。
+- 完整翻译并生成中文语音后才开放中文播放，避免观看时在五分钟边界等待。
+- 点击开始后暂停原视频并显示加载状态；可关闭提示先观看原声。全部完成后选择从头或从当前位置播放中文。
+- YouTube 原页和本地网页共用整片任务与同步播放逻辑；本地服务提供整片进度、完整时间轴和本地音频缓存。
+- 整片处理耗时和 MiniMax 费用与视频长度相关；仍需本地服务持续运行。
 
-### Changed
+## 1.1.5 — 长句字幕与拖动定位
 
-- Default tier is now `caption`, so Lumeo can start with a free/no-Kyma path.
-- Background manual injection now injects all service scripts and `pipelines/caption.js` before `content.js`, so pre-existing YouTube tabs work after extension reload.
-- Background service worker now carries forward the useful Lumen v1 helpers:
-  - `fetchUrl`
-  - `fetchJSON`
-  - Soniox WebSocket bridge
-- Manifest host permissions expanded for the new provider matrix:
-  - Gemini
-  - OpenRouter
-  - Groq
-  - Hugging Face
-  - LibreTranslate managed/self-hosted URL support
+- 本地页与 YouTube 原页只显示当前短字幕，避免 MiniMax 把近一分钟语音合成一条识别结果时整段译文覆盖画面。
+- 开始中文配音时保留当前视频位置，先等该位置的语音可加载，再放行画面；拖动进度条时按视频时间定位到当前语音内部。
+- 字幕在长识别句内按文字比例估算位置，仍不是逐词时间戳。
 
-### Removed
+## 1.1.4 — 本地预处理与 YouTube 原页同步
 
-- Local design export zip and extracted reference folder after porting the usable UI pieces.
-- Any product/docs references to a specific design tool; design-tool references stay generic.
+- 本地页创建任务后立即显示原视频预览；当嵌入播放器要求登录时，可复制同步链接到 Chrome。
+- 译幕扩展在原 YouTube 页面读取本地服务已处理的片段，按视频播放时间播放中文语音与字幕；暂停、跳转、倍速和片段未就绪时重新对齐。
+- 修复 MiniMax 批量翻译返回不完整 JSON 时整段失败的问题；改用编号行并逐句补齐，保存识别结果和翻译进度以供重试。
+- 原页开始播放前先加载首句语音；跳转到尚未缓存的句子时等待音频就绪，并预读随后约 20 秒的语音。
+- 本地服务仍需成功读取音轨并完成 MiniMax 处理；YouTube 验证错误不会由扩展自动绕过。
 
----
+## 本地服务预览版 — YouTube 链接预处理播放
 
-## [2.0.0-beta.2] - 2026-05-09 — Rebrand to Lumeo + CI fix
+- 新增独立的本地网页入口，粘贴 YouTube 链接后建立每段 5 分钟的任务队列。
+- 首段准备好后才播放，后台只处理当前段及后面最多 3 段；支持失败重试和跳转时重排。
+- 本机以 yt-dlp/FFmpeg 处理音轨，MiniMax 负责识别、翻译和中文语音；不改变现有 Chrome 扩展模式。
 
-A naming and infrastructure pass on top of beta.1.
+## 1.1.3 — 视频与中文语音同步
 
-### Changed
+- 点击开始后先暂停视频。智能字幕先准备首句中文朗读，再放行视频；后续语音未就绪时在句首等待。
+- 国内配音先静音预采样并生成该段中文语音，再从原位置同步播放画面和配音；每段按实际时长调速。
+- 视频暂停时停止中文语音；转换中暂停会回到该段起点。点击停止时，视频也暂停。
+- 无现成字幕的音频识别仍需要逐段采样与云端处理，观看过程中会出现等待。
 
-- **Brand: `Lumen Subtitle Studio` → `Lumeo`.** The interim "Lumen Subtitle Studio" name from beta.1 was a holdover from v1; "Subtitle Studio" implied caption-only and didn't fit the three-tier model that includes audio dubbing. "Lumeo" is a portmanteau of the two predecessor brands (**Lum**en + **E**ch**o**ly) and matches the maintainer's other org repo naming style (`judgeloom`, `blendops`).
-- `LUMEN_VERSION` → `LUMEO_VERSION` (content.js).
-- `__lumenContentVersion` → `__lumeoContentVersion` (window guard key).
-- `lumenOverlayLayout` → `lumeoOverlayLayout` (localStorage key).
-- GitHub repository renamed `lumen-subtitle-studio` → `lumeo` (GitHub auto-redirects the old URL).
-- Release-zip filename: `lumen-subtitle-studio-vX.Y.Z.zip` → `lumeo-vX.Y.Z.zip`.
+## 1.1.2 — 暂停联动与模式整理
 
-### Fixed
+- 移除海外实时配音模式及其 WebRTC 运行代码；旧模式设置自动迁移到智能字幕。
+- 视频暂停时中止分段录音、未完成的识别与合成请求，停止排队或正在播放的中文语音；继续播放时处理新片段。
+- 字幕朗读预取以及 Groq、Soniox 备用识别也跟随视频暂停。
 
-- CI workflow (`.github/workflows/ci.yml`) was checking `sniffer.js` and `audio-processor.js` at the project root, but Phase 1 moved them into `services/`. The hard-coded file list is now replaced with a glob over all tracked `.js` files (auto-covers the upcoming Phase 2 modules under `services/`, `pipelines/`, `lib/`, `ui/`), and a package-structure assertion verifies the v2 layout.
+## 1.1.1 — 字幕与配音预取
 
----
+- 智能字幕优先翻译播放位置附近的内容，后续字幕在后台逐批翻译，缩短开始等待。
+- 使用 MiniMax 字幕朗读时，提前合成接下来约 24 秒内、最多 8 条字幕的声音；同时最多发起 2 个合成请求。
+- 同一段语音在本页内复用，避免播放时重复请求；跳转、暂停与停止时取消过期的播放或预取。
+- 无字幕的视频仍需等待音频播放后才能分段识别，延迟不受字幕预取改善。
 
-## [2.0.0-beta.1] - 2026-05-09 — v2 merge foundation, Phase 1
+## 1.1.0 — MiniMax 国内大模型链路
 
-This release lays the foundation for v2, a unified Chrome extension that merges the existing Lumen v1 caption-translation tool with the Echoly v0.2.1 live AI dubbing engine. Phase 1 shipped the Echoly baseline rebranded (initially as "Lumen Subtitle Studio", subsequently renamed to **Lumeo** in beta.2 — see entry above), with scaffolding for the upcoming caption tier port.
+- 智能字幕默认通过 MiniMax M3 翻译，并可用 Speech 2.8 Turbo 中文朗读。
+- 无可读字幕且已配置 MiniMax 密钥时，自动切换到分段音频识别、翻译、配音。
+- 国内配音默认使用 MiniMax ASR 1.0 → M3 → Speech 2.8 Turbo；保留旧版海外服务供手动选择。
+- MiniMax 语音识别目前使用短音频文件，属于数秒延迟的准实时配音，不是低于一秒的同声传译。
 
-### Added
+## 2026-09-23 — 译幕中文版本
 
-- Echoly v0.2.1 codebase imported as the v2 baseline (`background.js`, `content.js`, `content.css`, `popup.{html,css,js}`).
-- Manifest now declares the union of Lumen v1 and Echoly host permissions: Kyma, OpenAI, Google Translate (free + Cloud), Google Cloud TTS, Soniox.
-- New folder scaffold for upcoming module split: `pipelines/`, `services/`, `lib/`, `ui/`, `store-assets/`, `docs/`.
-- `pack.sh` and `release.sh` for one-shot zip packaging and release automation.
-- Privacy policy refreshed for the three-tier model (Caption / Standard / Realtime).
-- Web-store metadata template for the upcoming Chrome Web Store submission.
-
-### Changed
-
-- Internal `.ec-` CSS namespace from Echoly preserved to keep the v1.x → v2.x diff reviewable.
-- `ECHOLY_VERSION` constant in `content.js` renamed to `LUMEN_VERSION` (further renamed to `LUMEO_VERSION` in beta.2).
-- `__echolyContentVersion` window guard renamed to `__lumenContentVersion` (then `__lumeoContentVersion` in beta.2).
-- `echolyOverlayLayout` localStorage key renamed to `lumenOverlayLayout` (then `lumeoOverlayLayout` in beta.2).
-- Icons moved from project root into `icons/` subfolder, normalised naming `icon-{16,48,128}.png`.
-- README rewritten to describe the three-tier vision and merge roadmap.
-
-### Migrated / Preserved
-
-- Lumen v1 source preserved on the `v1-legacy` branch for reference. The obfuscated `content.js` and `popup.js` from v1.2.1 will be reverse-engineered and rewritten cleanly into `pipelines/caption.js` and `services/{translate,tts-browser,stt-soniox,srt-export}.js` during Phase 2.
-- v1 `sniffer.js` and `audio-processor.js` (already clean, non-obfuscated) carried forward to `services/sniffer.js` and `services/audio-processor.js`.
-
-### Removed
-
-- v1's obfuscated `content.js`, `popup.html`, `popup.js`, `subtitle.css` (replaced by Echoly baseline; will be re-implemented from scratch in Phase 2).
-- v1's `background.js` (replaced by Echoly's state-machine version).
-
----
-
-## [1.2.1] - 2026-04-03 — Final v1 release (preserved on `v1-legacy`)
-
-### Added
-
-- Professional repository documentation set
-- Structured contribution, security, and governance docs
-- New icon set for extension branding
-
-### Changed
-
-- Cleaned repository structure for public release
-- Hardened subtitle sniffer message flow and config consistency
+- 扩展名称改为“译幕”，界面、操作提示、服务说明、隐私说明和打包文件名改为中文。
+- 免费字幕模式默认目标语言改为简体中文；已有用户选择仍由本地设置保留。
+- 保留旧版内部接口、存储键和字幕包格式，支持已有设置与导入文件。
+- 更新测试断言；117 项测试及 28 个脚本语法检查通过。

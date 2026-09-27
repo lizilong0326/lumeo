@@ -11,25 +11,25 @@
       const err = parsed.error || {};
       if (err.code === "insufficient_balance") {
         return {
-          user: "Out of Kyma balance.",
+          user: "Kyma 余额不足。",
           cta: err.cta_url || "https://kymaapi.com/billing",
-          ctaLabel: "Top up",
+          ctaLabel: "去充值",
         };
       }
       if (err.code === "too_many_sessions") {
-        return { user: "Kyma session limit reached. Stop another Lumeo session, then retry." };
+        return { user: "Kyma 会话数已达上限，请先停止另一段译幕配音后重试。" };
       }
       if (err.code === "upstream_error") {
-        return { user: "Kyma provider is temporarily unavailable. Retry in a minute." };
+        return { user: "Kyma 服务暂不可用，请稍后重试。" };
       }
       if (err.code === "rate_limited") {
-        return { user: "Kyma rate limit reached. Wait 30 seconds, then retry." };
+        return { user: "Kyma 请求过于频繁，请等待 30 秒后重试。" };
       }
-      if (err.message) return { user: `Kyma ${status}: ${err.message}. Check your Kyma key/session, then retry.` };
+      if (err.message) return { user: `Kyma 错误 ${status}：${err.message}。请检查密钥和会话后重试。` };
     } catch {
       // Fall through to raw text.
     }
-    return { user: `Kyma ${status}: ${(errText || "").slice(0, 160)}. Check your Kyma key/session, then retry.` };
+    return { user: `Kyma 错误 ${status}：${(errText || "").slice(0, 160)}。请检查密钥和会话后重试。` };
   }
 
   async function post(path, kymaKey, options = {}) {

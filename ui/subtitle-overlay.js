@@ -104,7 +104,7 @@
       popover.className = "lumeo-lookup-popover";
       popover.hidden = true;
       popover.setAttribute("role", "dialog");
-      popover.setAttribute("aria-label", "Word lookup");
+      popover.setAttribute("aria-label", "词语查询");
       overlay?.appendChild(popover);
       return popover;
     }
@@ -117,15 +117,15 @@
       const title = doc.createElement("strong");
       title.textContent = word;
       const meta = doc.createElement("small");
-      meta.textContent = `Normalized · ${normalized}`;
+      meta.textContent = `规范词形：${normalized}`;
       const target = doc.createElement("p");
-      target.textContent = `Target: ${currentCue?.translated || currentCue?.text || "—"}`;
+      target.textContent = `译文：${currentCue?.translated || currentCue?.text || "—"}`;
       const source = doc.createElement("p");
-      source.textContent = `Source: ${currentCue?.text || "—"}`;
+      source.textContent = `原文：${currentCue?.text || "—"}`;
       const copy = doc.createElement("button");
       copy.type = "button";
       copy.className = "lumeo-lookup-copy";
-      copy.textContent = "Copy word";
+      copy.textContent = "复制词语";
       copy.addEventListener("click", async () => {
         try { await window.navigator?.clipboard?.writeText?.(word); } catch {}
       });
@@ -144,7 +144,7 @@
         button.type = "button";
         button.className = "lumeo-lookup-word";
         button.dataset.lookupWord = token.word;
-        button.setAttribute("aria-label", `Inspect word ${token.word}`);
+        button.setAttribute("aria-label", `查看词语 ${token.word}`);
         button.textContent = token.text;
         parent.appendChild(button);
       }

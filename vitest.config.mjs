@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-// Vitest runs pure-function unit tests against Lumeo's vanilla-JS services.
+// Vitest runs pure-function unit tests against 译幕's vanilla-JS services.
 // We mount each service module inside a jsdom sandbox that emulates the
 // subset of the browser API each one needs (window.Lumeo*, DOMParser,
 // localStorage). No bundler, no TS — matches the zero-build philosophy of

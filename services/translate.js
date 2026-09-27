@@ -14,6 +14,7 @@
     OPENROUTER: "openrouter",
     GROQ: "groq",
     LIBRETRANSLATE: "libretranslate",
+    MINIMAX: "minimax",
   });
 
   const providerLabels = Object.freeze({
@@ -24,6 +25,7 @@
     [PROVIDERS.OPENROUTER]: "OpenRouter",
     [PROVIDERS.GROQ]: "Groq",
     [PROVIDERS.LIBRETRANSLATE]: "LibreTranslate",
+    [PROVIDERS.MINIMAX]: "MiniMax",
   });
 
   function labelFor(provider) {
@@ -38,7 +40,7 @@
 
   function assertKey(value, providerName) {
     const key = String(value || "").trim();
-    if (!key) throw new Error(`${providerName} API key is missing.`);
+    if (!key) throw new Error(`缺少 ${providerName} API 密钥。`);
     return key;
   }
 
@@ -144,7 +146,7 @@
 
   async function translateLibreTranslate(texts, targetLanguage, options) {
     const baseUrl = String(options.libreTranslateUrl || "").trim().replace(/\/+$/, "");
-    if (!baseUrl) throw new Error("LibreTranslate URL is missing.");
+    if (!baseUrl) throw new Error("缺少 LibreTranslate 服务地址。");
     const endpoint = `${baseUrl}/translate`;
     const key = String(options.libreTranslateKey || "").trim();
     const results = [];
@@ -187,22 +189,29 @@
 
   async function translateChatCompletions(texts, targetLanguage, options) {
     const provider = normalizeProvider(options.provider);
+    const isMiniMax = provider === PROVIDERS.MINIMAX;
     const isOpenRouter = provider === PROVIDERS.OPENROUTER;
     const isGroq = provider === PROVIDERS.GROQ;
     const key = assertKey(
-      isOpenRouter
+      isMiniMax
+        ? options.minimaxKey || options.apiKey
+        : isOpenRouter
         ? options.openRouterKey || options.apiKey
         : isGroq
           ? options.groqApiKey || options.apiKey
           : options.openaiKey || options.apiKey,
-      isOpenRouter ? "OpenRouter" : isGroq ? "Groq" : "OpenAI",
+      isMiniMax ? "MiniMax" : isOpenRouter ? "OpenRouter" : isGroq ? "Groq" : "OpenAI",
     );
-    const model = isOpenRouter
+    const model = isMiniMax
+      ? options.minimaxModel || "MiniMax-M3"
+      : isOpenRouter
       ? options.openRouterModel || "openrouter/free"
       : isGroq
         ? options.groqModel || "llama-3.3-70b-versatile"
         : options.openaiModel || "gpt-4o-mini";
-    const url = isOpenRouter
+    const url = isMiniMax
+      ? "https://api.minimax.cn/v1/chat/completions"
+      : isOpenRouter
       ? "https://openrouter.ai/api/v1/chat/completions"
       : isGroq
         ? "https://api.groq.com/openai/v1/chat/completions"
@@ -217,10 +226,6 @@
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
-        ...(isOpenRouter ? {
-          "HTTP-Referer": "https://github.com/ThanhNguyxnOrg/lumeo",
-          "X-Title": "Lumeo",
-        } : {}),
       },
       body: JSON.stringify({
         model,
@@ -229,9 +234,13 @@
           { role: "user", content: input },
         ],
         temperature: 0.2,
+        ...(isMiniMax ? { thinking: { type: "disabled" }, reasoning_split: true } : {}),
       }),
       signal: options.signal,
     });
+    if (isMiniMax && Number(data?.base_resp?.status_code || 0) !== 0) {
+      throw new Error(`MiniMax 翻译失败：${data.base_resp.status_msg || data.base_resp.status_code}`);
+    }
     const raw = data?.choices?.[0]?.message?.content || "";
     return parseIndexedLines(raw, texts.length, texts);
   }
@@ -275,6 +284,7 @@
         case PROVIDERS.OPENAI:
         case PROVIDERS.OPENROUTER:
         case PROVIDERS.GROQ:
+        case PROVIDERS.MINIMAX:
           translated = await translateChatCompletions(group, targetLanguage, { ...options, provider });
           break;
         case PROVIDERS.GEMINI:

@@ -1,5 +1,7 @@
 # P5 source and asset audit
 
+> Historical audit from 2026-05-12. File lists and packaging conclusions below may not match the current local-service version; use the current source tree and [README](../../README.md) for present behavior.
+
 Status: repo audit ready, packaging run still manual/blocked until release zip is created.
 Date: 2026-05-12
 
@@ -41,7 +43,7 @@ Expected runtime files:
 
 ## Review flags
 
-1. `store-assets/*.zip` is currently allowed by `.gitignore`. Before committing a release zip, inspect its contents and size. Don't include dev/test/generated files.
+1. Release zip files are ignored by the current `.gitignore`. Inspect the contents and size before distributing any package; don't include dev/test/generated files.
 2. Roadmap references `output/research` and `closed-ext/*` as research sources only. Those paths are ignored or absent from the tracked extension tree.
 3. If packaging automation is added later, it should allowlist runtime files rather than zipping the whole repo.
 
@@ -50,8 +52,8 @@ Expected runtime files:
 Run after creating a release zip:
 
 ```powershell
-Expand-Archive -LiteralPath "store-assets/lumeo-2.0.0.zip" -DestinationPath "$env:TEMP\lumeo-package-check" -Force
-Get-ChildItem -Recurse -File "$env:TEMP\lumeo-package-check" | ForEach-Object { $_.FullName.Replace("$env:TEMP\lumeo-package-check\", "") }
+Expand-Archive -LiteralPath "store-assets/yimu-v1.2.3.zip" -DestinationPath "$env:TEMP\yimu-package-check" -Force
+Get-ChildItem -Recurse -File "$env:TEMP\yimu-package-check" | ForEach-Object { $_.FullName.Replace("$env:TEMP\yimu-package-check\", "") }
 ```
 
 Expected: runtime files above plus optional docs/store assets. Not expected: `node_modules`, `coverage`, `.git`, `output`, browser profiles, screenshots unless intentionally packaged for store assets outside extension zip.

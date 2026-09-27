@@ -100,7 +100,7 @@ describe("ui/overlay.js accessibility", () => {
     const { controller, root } = await setup();
     const elements = controller.getElements();
 
-    expect(root.querySelector("[data-ec-help]")?.getAttribute("aria-label")).toBe("Keyboard shortcuts");
+    expect(root.querySelector("[data-ec-help]")?.getAttribute("aria-label")).toBe("快捷键");
     // ec-body and ec-target exist for in-panel subtitle display
     expect(root.querySelector(".ec-body")).not.toBeNull();
     expect(root.querySelector("[data-ec-target]")).not.toBeNull();

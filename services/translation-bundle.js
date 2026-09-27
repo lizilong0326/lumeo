@@ -4,7 +4,8 @@
   if (window.LumeoTranslationBundle?.__loaded) return;
 
   const BUNDLE_VERSION = 1;
-  const KIND = "lumeo.translationBundle";
+  const KIND = "yimu.translationBundle";
+  const LEGACY_KIND = "lumeo.translationBundle";
   const CACHE_VERSION = 2;
 
   function cleanString(value, fallback = "") {
@@ -40,9 +41,9 @@
     const provider = cleanString(meta.provider || fallback.provider || "google-free");
     const sourceLanguage = cleanString(meta.sourceLanguage || fallback.sourceLanguage || "auto") || "auto";
     const cues = normalizeCues(entry?.cues);
-    if (!videoId) throw new Error("Translation bundle needs a videoId.");
-    if (!targetLanguage) throw new Error("Translation bundle needs a target language.");
-    if (!cues.length) throw new Error("No translated cues found for this video/language.");
+    if (!videoId) throw new Error("字幕包缺少视频编号。");
+    if (!targetLanguage) throw new Error("字幕包缺少目标语言。");
+    if (!cues.length) throw new Error("此视频与语言没有可导出的译文。");
     return {
       kind: KIND,
       version: BUNDLE_VERSION,
@@ -64,16 +65,16 @@
 
   function parseBundle(input) {
     const bundle = typeof input === "string" ? JSON.parse(input) : input;
-    if (bundle?.kind !== KIND) throw new Error("Not a Lumeo translation bundle.");
-    if (bundle.version !== BUNDLE_VERSION) throw new Error("Unsupported translation bundle version.");
+    if (bundle?.kind !== KIND && bundle?.kind !== LEGACY_KIND) throw new Error("这不是译幕字幕包。");
+    if (bundle.version !== BUNDLE_VERSION) throw new Error("不支持此字幕包版本。");
     const cues = normalizeCues(bundle.cues);
     const videoId = cleanString(bundle.videoId);
     const targetLanguage = cleanString(bundle.targetLanguage);
     const provider = cleanString(bundle.provider || bundle.meta?.provider || "google-free");
     const sourceLanguage = cleanString(bundle.sourceLanguage || bundle.meta?.sourceLanguage || "auto") || "auto";
-    if (!videoId) throw new Error("Bundle is missing videoId.");
-    if (!targetLanguage) throw new Error("Bundle is missing targetLanguage.");
-    if (!cues.length) throw new Error("Bundle has no cues.");
+    if (!videoId) throw new Error("字幕包缺少视频编号。");
+    if (!targetLanguage) throw new Error("字幕包缺少目标语言。");
+    if (!cues.length) throw new Error("字幕包中没有字幕。");
     return {
       key: cacheKey(videoId, targetLanguage, provider, sourceLanguage),
       entry: {
@@ -96,11 +97,11 @@
   }
 
   function filenameForBundle(bundle) {
-    const title = cleanString(bundle?.meta?.title || bundle?.videoId || "lumeo-translation");
+    const title = cleanString(bundle?.meta?.title || bundle?.videoId || "yimu-translation");
     const safe = window.LumeoSrtExport?.sanitizeFilename
-      ? window.LumeoSrtExport.sanitizeFilename(title, "lumeo-translation")
-      : title.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").slice(0, 120) || "lumeo-translation";
-    return `${safe}_${bundle.targetLanguage || "target"}_lumeo_bundle.json`;
+      ? window.LumeoSrtExport.sanitizeFilename(title, "yimu-translation")
+      : title.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").slice(0, 120) || "yimu-translation";
+    return `${safe}_${bundle.targetLanguage || "target"}_yimu_bundle.json`;
   }
 
   window.LumeoTranslationBundle = {

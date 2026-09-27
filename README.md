@@ -1,312 +1,174 @@
-<p align="center">
-  <img src="./icons/icon-128.png" alt="Lumeo" width="96" height="96" />
-</p>
+<p align="center"><img src="./icons/icon-128.png" alt="译幕 Logo" width="96" height="96"></p>
 
-<h1 align="center">Lumeo</h1>
+<h1 align="center">译幕</h1>
 
-<p align="center">
-  <strong>Bilingual captions & live AI dubbing for YouTube — one extension, three tiers.</strong>
-</p>
+<p align="center">让 YouTube 视频先拥有完整中文字幕和中文配音，再跟随视频进度播放。</p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-ff7a45?style=for-the-badge" alt="Version">
-  <img src="https://img.shields.io/badge/Chrome-MV3-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Chrome MV3">
-  <img src="https://img.shields.io/badge/tests-117%20passed-2ea043?style=for-the-badge" alt="Tests">
-  <img src="https://img.shields.io/badge/license-MIT-2ea043?style=for-the-badge" alt="License">
-</p>
+> **当前版本是本地预览版。** 译幕输出简体中文字幕与中文配音；中文播放需要等待整片准备完成，不是边看边实时生成。处理过程会调用 MiniMax API，可能产生费用。
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#installation">Install</a> •
-  <a href="#usage">Usage</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#project-structure">Structure</a> •
-  <a href="#contributing">Contributing</a>
-</p>
+**使用前必须在自己的电脑上启动本地服务，并在使用期间保持运行。** 只通过本地网页粘贴视频链接时，不需要安装浏览器扩展；要在 YouTube 原视频页启动任务或播放中文配音，还需要在 Chrome 中加载译幕扩展。仅加载扩展而不启动本地服务，无法使用中文配音功能。两种方式都需要自行提供 MiniMax API Key。
 
----
+## 译幕能做什么
 
-## What is Lumeo?
+| 视频情况 | 译幕的处理方式 |
+| --- | --- |
+| 有可读取的 YouTube 字幕 | 读取整片字幕 → 翻译为简体中文 → 合成中文配音。 |
+| 没有可读取的字幕 | 下载音轨 → 识别完整视频的语音并生成带时间戳的字幕 → 翻译 → 合成中文配音。 |
 
-Lumeo is a Chrome extension that lets you watch any YouTube video in your language. It offers **three tiers** — from free caption translation to real-time AI dubbing — so you can pick the one that fits the moment.
+- **整片准备，按进度播放：** 中文配音完成后，可从头播放，也可从当前进度继续；暂停、拖动进度条后会按视频时间重新定位字幕和语音。
+- **准备时先看原视频：** 等待期间可以关闭准备提示，先播放原声，后台继续处理。
+- **两种入口：** 在本地网页粘贴 YouTube 链接，或者安装 Chrome 扩展后直接从 YouTube 视频页启动。
+- **失败可恢复：** 已完成的字幕、译文和语音保存在本机；遇到临时错误可重试，遇到语音限流可等待或跳过当前配音组。
 
-No account required. No telemetry. No Lumeo-operated server. Your API keys stay on your device.
+**范围说明：** 当前目标语言固定为简体中文。译幕不会将中文声音烧录成一个新的视频文件；它是在本地网页或 YouTube 原页播放视频时同步显示字幕和播放配音。字幕和配音与原视频时间对齐，但不能保证逐字口型同步。
 
----
+## 使用前准备
 
-## Features
+| 项目 | 要求或用途 |
+| --- | --- |
+| 浏览器 | Chrome 116 或更新版本。要在 YouTube 原页观看中文配音时，需要加载译幕扩展。 |
+| Node.js | 22 或更新版本，用于运行本地服务和 `yt-dlp` 的 JavaScript 运行时。 |
+| Python | 3.10 或更新版本，用于安装 `yt-dlp` 与 FFmpeg 依赖。 |
+| 终端环境 | 当前启动脚本面向 macOS / Linux 的 Bash 环境；尚未提供原生 Windows 启动脚本。 |
+| MiniMax API Key | 用于语音识别、字幕翻译和中文语音合成。译幕本身不要求注册账号。 |
 
-### 🎬 Three Translation Tiers
+### 注册 MiniMax 并取得 API Key
 
-| Tier | How it works | Latency | Cost |
-|------|-------------|---------|------|
-| **Caption** | Translates YouTube's existing subtitles into 100+ languages. Shows a bilingual in-video overlay with optional TTS read-aloud. Falls back to Groq Whisper or Soniox STT when no captions exist. | Instant | Free (Google Translate default) |
-| **Standard** | Captures audio → Kyma Whisper v3 Turbo → Gemini 2.5 Flash → MiniMax Speech Turbo. Full multilingual dub over the original audio. | ~5 seconds | ~$0.25 / 10 min |
-| **Realtime** | Captures audio → WebRTC P2P with OpenAI Realtime via Kyma. Sub-second dubbing with selectable voices. | <1 second | ~$0.46 / 10 min |
+1. 打开 [MiniMax 国内开放平台注册／登录页面](https://platform.minimax.cn/login)，按官方页面完成注册或登录。
+2. 在开放平台控制台创建 **API Key**，并查看当前账户的可用额度与计费规则。控制台菜单可能随官方页面更新，以页面实际名称为准。
+3. 在译幕本地网页或扩展弹窗的 **MiniMax API 密钥**输入框中填写该密钥。不要把密钥提交到 GitHub、发给他人，或写进仓库文件。
 
-### 🌍 Language Support
+MiniMax 的识别、翻译和语音合成由其开放平台提供；费用与速率限制由你的账户和官方规则决定。建议先用较短的视频试运行，再处理长视频。项目不会替你购买额度。
 
-- **13 dubbing languages**: English, Vietnamese, Japanese, Korean, Chinese, French, Spanish, German, Portuguese, Hindi, Indonesian, Italian, Russian
-- **100+ caption translation languages** via Google Translate, Gemini, OpenRouter, Groq, OpenAI, Google Cloud, or LibreTranslate
+## 快速开始：在本地网页粘贴链接
 
-### 🎨 In-Video Subtitle Overlay
+1. 在本项目的 GitHub 页面点击 **Code → Download ZIP**，解压后打开项目文件夹。也可以使用 Git 克隆本项目仓库。
+2. 在项目根目录打开终端，首次运行安装脚本：
 
-- Native-like bilingual subtitles rendered directly on the video player
-- Customizable font size, position, and contrast
-- Layout presets: Stacked (translated + source), Translated only, Source only
-- RTL language support (Arabic, Hebrew, Farsi, Urdu)
-- Picture-in-Picture subtitle support
+   ```bash
+   npm run local:setup
+   ```
 
-### 🎛️ Compact Settings Toolbar
+   该命令会在 `local-service/.venv/` 安装 `yt-dlp` 和 FFmpeg 依赖。以后通常只需重新运行服务，不必每次重复安装。
 
-- Draggable and resizable overlay panel
-- Language and voice selector
-- Original audio volume & voice volume controls
-- Mute original audio toggle
-- Keyboard shortcuts (`Esc` to collapse, `?` for help, `Ctrl+Shift+L` to toggle)
+3. 启动本地服务，并保持这个终端窗口运行：
 
-### 🔊 Text-to-Speech (Caption Tier)
+   ```bash
+   npm run local:serve
+   ```
 
-- **Browser TTS** — Free, on-device speech synthesis
-- **Google Cloud TTS** — Chirp3-HD voices (BYOK)
-- **OpenAI TTS** — High-quality neural voices (BYOK)
+4. 在浏览器打开 <http://127.0.0.1:8791/>。粘贴 YouTube 视频链接，填入 MiniMax API Key，点击**准备中文配音**。
+5. 等待完整字幕和配音生成。想先看原声时，点击**先看原视频**；处理完成后选**从头播放中文**或**从当前位置播放**。
 
-### 🔒 Privacy-First
+本地服务默认只监听 `127.0.0.1:8791`。打开 <http://127.0.0.1:8791/api/health> 可检查它是否在运行。当前只支持带有效视频 ID 和时长的 YouTube HTTPS 链接；直播没有确定时长，暂不支持。
 
-- Zero data collection or telemetry
-- API keys stored locally in `chrome.storage.local`
-- Audio only leaves the browser when you explicitly choose a cloud provider
-- Full [privacy policy](store-assets/privacy-policy.html) included
+### 视频在本地网页无法播放时
 
----
+部分视频会限制嵌入播放，或要求在 YouTube 登录。此时先让整片处理完成，再点击页面下方的**在 YouTube 打开**，使用已安装译幕扩展的 Chrome 打开原视频。该链接会携带本地任务编号，以便扩展连接已完成的配音；链接中**不包含 MiniMax API Key**。本地服务需要继续运行。
 
-## Installation
+## 在 YouTube 原页使用扩展
 
-### From Source (Developer Mode)
+### 安装
+
+1. 先按上文启动译幕本地服务。
+2. 在 Chrome 地址栏打开 `chrome://extensions`，开启右上角的**开发者模式**。
+3. 点击**加载已解压的扩展程序**，选择包含 `manifest.json` 的项目根目录。
+4. 将**译幕**固定到工具栏。更新源码后，需要在扩展管理页点击**重新加载**，再刷新已打开的 YouTube 视频页。
+
+这是从源码加载的扩展，不是 Chrome 应用商店安装包。扩展需要读取当前 YouTube 视频页面，并与本机服务通信；在使用 MiniMax 功能时，相关音频或文本会发送给 MiniMax。
+
+### 直接从视频页开始
+
+1. 在 Chrome 打开要观看的 YouTube 视频。
+2. 点击工具栏中的**译幕**，填写 MiniMax API Key；按需在**声音与读取设置**中选择音色。
+3. 点击**开始准备整片**。视频会先暂停，等待中文内容准备；如想先看原视频，点击页面上的**先看原视频，后台继续准备**。
+4. 准备完成后，选择**从头播放中文**或**从当前位置播放中文配音**。需要结束时，打开页面面板中的**任务操作**并选择**停止当前任务**。
+
+扩展的**声音与读取设置**提供常用普通话音色；选择**其他音色：输入音色 ID**，还可以填写 [MiniMax 官方音色列表](https://platform.minimax.cn/docs/faq/system-voice-id)中的 `voice_id`。本地网页的**更多设置 → 中文音色 ID**也可直接填写。更换音色后，新建的任务使用新声音；已生成的配音不会自动变更。
+
+有字幕的视频优先使用整片字幕；没有可读字幕时才由本地服务提取音轨并识别。处理时间受视频长度、网络、YouTube 可读取性和 MiniMax 响应速度影响。直接从扩展启动任务目前使用默认端口 `8791`。
+
+## 处理进度、缓存与重试
+
+| 阶段 | 页面上可能看到的状态 | 在做什么 |
+| --- | --- | --- |
+| 读取 | 正在读取视频信息／字幕 | 检查视频 ID、时长和可用字幕。 |
+| 识别 | 正在下载音轨／生成字幕 | 仅在无可读字幕时提取音频，按约 5 分钟的内部任务识别整片语音。 |
+| 翻译 | 正在翻译字幕 | 将整片字幕翻译为简体中文。 |
+| 配音 | 正在生成整片中文语音 | 把相邻字幕合并为配音组，再按组请求 MiniMax。 |
+| 就绪 | 整片中文配音已就绪 | 此时才开放完整中文播放。 |
+
+配音组最多包含 8 条字幕，跨度最长约 45 秒；默认两次语音请求至少间隔 3 秒。这能减少请求数和限流概率，但不能消除账户的 RPM 上限。处理中的进度数字可能是**配音组数**，不是已经播放的视频分钟数。
+
+缓存默认位于 `local-service/data/`，包括已读取的字幕、识别结果、译文和配音文件；该目录已被 `.gitignore` 排除。遇到错误后重新创建任务，可复用已落盘的内容。**重启本地服务会使正在运行的任务编号失效**，但不会自动删除缓存；重启后需要重新输入密钥并创建任务。
+
+出现 `rate limit exceeded(RPM)` 时，页面会显示等待倒计时并自动重试。也可以选择**跳过当前配音组**继续处理；被跳过的部分保留中文字幕，但没有中文配音。如果连续重试后任务失败，可点**继续重试**。
+
+## 常见问题
+
+| 现象 | 处理方法 |
+| --- | --- |
+| 本地页面打不开 | 确认运行 `npm run local:serve` 的终端仍在运行；访问 `/api/health` 检查服务；若端口被占用，见下方端口配置。 |
+| YouTube 提示 `Sign in to confirm you’re not a bot` | 先在 Chrome 登录 YouTube，再在译幕页面按需勾选**使用本机 Chrome 登录状态读取视频**并点击**重新尝试读取**。该选项默认关闭。 |
+| 已登录仍无法读取 | YouTube 的验证策略可能变化；可参考 [yt-dlp 官方 Cookie 说明](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp)。不要把 Cookie 文件放进仓库或发给他人。 |
+| 本地播放器显示视频不可用或要求登录 | 让配音任务继续完成，然后点**在 YouTube 打开**，回到安装扩展的 Chrome 原页播放。 |
+| 配音进度停在某一条或提示 RPM 限流 | 看页面中的重试倒计时；需要继续推进时可跳过当前组，或在失败后点**继续重试**。跳过部分只有字幕。 |
+| 快进后暂时没有中文声音 | 译幕会按快进位置加载对应语音；等待页面提示消失。如果该组尚未就绪或已跳过，就不会有对应配音。 |
+| 更新代码后仍看到旧界面 | 在 `chrome://extensions` 重新加载译幕扩展，再刷新 YouTube 原视频页面；只刷新本地服务网页不足以更新扩展内容脚本。 |
+| 服务重启后提示任务不存在 | 重新提交视频链接和密钥创建任务；磁盘上已完成的缓存仍会复用。 |
+
+更多说明见[故障排查](TROUBLESHOOTING.md)。反馈问题时可附视频链接、Chrome 版本、错误文字和复现步骤；**不要公开 API Key、Cookie 或完整请求头**。
+
+## 隐私、权限与费用
+
+- 本地服务和任务队列运行在你的电脑上，默认仅监听 `127.0.0.1`。**“本地服务”不代表模型在本机运行**：音频片段、待翻译文本与配音文本会发送到 MiniMax API。
+- 从扩展弹窗填写的 API Key 保存在 Chrome 本地扩展存储中，创建任务时也会发送给本机服务；从本地网页填写的 Key 只保存在当前服务进程内存中。服务重启后，本地网页需要重新输入。
+- 默认不会读取 Chrome Cookie。手动启用登录状态读取后，`yt-dlp` 会读取 Chrome 的 Cookie，其中可能包含其他网站的会话信息；只在视频确实要求验证时开启。译幕不会把 Cookie 保存进项目文件，也不会将其发送给 MiniMax。
+- 本地处理文件会留在 `local-service/data/`，占用磁盘空间；不要把该目录或含凭据的文件上传到公开仓库。
+- 视频的获取、字幕和配音使用应遵守相应平台规则与内容授权。MiniMax API 的价格、余额与调用额度以其官方控制台为准。
+
+详见[隐私说明](docs/privacy.html)与[安全说明](SECURITY.md)。
+
+## 可选配置
+
+在**启动本地服务之前**设置环境变量；更改后需重新启动服务。正在处理长视频时，请先确认当前任务是否可以中断。
+
+| 变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `YIMU_PORT` | `8791` | 本地网页与 API 的端口。扩展直接启动任务仍使用 `8791`，建议保持默认。 |
+| `YIMU_DATA_DIR` | `local-service/data/` | 字幕、音频和配音缓存目录。 |
+| `YIMU_TTS_MIN_INTERVAL_MS` | `3000` | 两个 MiniMax 配音请求之间的最短间隔，单位为毫秒。 |
+| `YIMU_YTDLP_COOKIES_FILE` | 未设置 | 自行提供 Netscape 格式 Cookie 文件的绝对路径；不要将该文件提交到 GitHub。 |
+
+例如，为减少短时间内连续配音请求，可在 macOS / Linux 终端执行：
 
 ```bash
-git clone https://github.com/ThanhNguyxnOrg/lumeo.git
-cd lumeo
+YIMU_TTS_MIN_INTERVAL_MS=5000 npm run local:serve
+```
+
+如果端口 `8791` 已占用，可用 `YIMU_PORT=8792 npm run local:serve`，再打开 <http://127.0.0.1:8792/>。本地页面生成的 YouTube 同步链接会携带端口；扩展弹窗直接发起任务仍使用 `8791`。
+
+## 开发与项目文件
+
+只想使用本地网页时，按“快速开始”运行即可。修改代码或运行检查时，在项目根目录执行：
+
+```bash
 npm install
-```
-
-1. Open `chrome://extensions` in Chrome
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked** → select the `lumeo` folder
-4. Pin Lumeo to your toolbar
-
-### Update
-
-```bash
-git pull
-```
-
-Then click the ↻ reload icon on the extension card in `chrome://extensions`.
-
-> **Note:** After reloading the extension, also refresh any open YouTube tabs to pick up the new content script.
-
----
-
-## Usage
-
-1. **Open any YouTube video**
-2. **Click the Lumeo toolbar icon** to open the popup
-3. **Pick a tier:**
-
-   | Tier | Setup |
-   |------|-------|
-   | **Caption** | Select target language → Start. Free by default. |
-   | **Standard** | Paste a [Kyma API key](https://kymaapi.com) → select language & voice → Start |
-   | **Realtime** | Paste a [Kyma API key](https://kymaapi.com) → select language & voice → Start |
-
-4. **Control playback** via the in-video toolbar:
-   - Switch language or voice on the fly
-   - Adjust original/voice volume
-   - Toggle subtitle visibility
-   - Change font size and position
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Esc` | Collapse/expand toolbar |
-| `?` or `h` | Show shortcuts help |
-| `Ctrl+Shift+L` | Toggle toolbar visibility |
-
----
-
-## Architecture
-
-```
-┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│   Popup UI   │◄────│   Background SW  │◄────│   Content Script │
-│  popup.html  │     │  background.js   │     │   content.js     │
-│  popup.js    │────►│  (state machine) │────►│   (orchestrator) │
-└──────────────┘     └──────────────────┘     └──────────────────┘
-                                                       │
-                            ┌──────────────────────────┤
-                            ▼                          ▼
-                    ┌───────────────┐        ┌──────────────────┐
-                    │  Subtitle     │        │   Pipeline       │
-                    │  Overlay      │        │   Engine         │
-                    │  (in-video)   │        │                  │
-                    └───────────────┘        ├──────────────────┤
-                                             │ caption.js       │
-                                             │ standard.js      │
-                                             │ realtime.js      │
-                                             └──────────────────┘
-```
-
-### Data Flow
-
-```
-popup ◄── BACKGROUND_STATE_UPDATE ─── background ◄── CONTENT_STATE ─── content
-       ── START / UPDATE_SETTINGS ──►              ── CONTENT_START ──►
-```
-
-### Pipeline Architecture
-
-- **Caption Pipeline**: YouTube captions → translate (7 providers) → bilingual overlay → optional TTS
-- **Standard Pipeline**: captureStream → MediaRecorder chunks → Whisper STT → Gemini translate → MiniMax TTS → Web Audio playback
-- **Realtime Pipeline**: captureStream → WebRTC PeerConnection → OpenAI Realtime → voice output with gain control
-
----
-
-## Project Structure
-
-```
-lumeo/
-├── manifest.json                   # Chrome MV3 manifest
-├── background.js                   # Service worker — state machine & message router
-├── content.js                      # Content script — orchestrator, overlay, session management
-├── content.css                     # All overlay & subtitle styling
-├── popup.html / .css / .js         # Extension popup UI
-│
-├── pipelines/
-│   ├── caption.js                  # Caption tier — translate & cache YouTube subtitles
-│   ├── caption-orchestrator.js     # Caption lifecycle — fallback choice, progress, TTS
-│   ├── standard.js                 # Standard tier — chunked Whisper→Gemini→MiniMax
-│   └── realtime.js                 # Realtime tier — WebRTC P2P to OpenAI
-│
-├── ui/
-│   ├── overlay.js                  # Draggable/resizable settings toolbar
-│   ├── subtitle-overlay.js         # In-video bilingual subtitle renderer
-│   ├── voice-picker.js             # Voice/TTS dropdown population
-│   └── caption-fallback-choice.js  # UI for caption fallback selection
-│
-├── services/
-│   ├── captions.js                 # YouTube caption track detection & XML parsing
-│   ├── translate.js                # 7 translation providers (Google, Gemini, OpenRouter, etc.)
-│   ├── tts-browser.js              # Browser SpeechSynthesis + Google Cloud TTS
-│   ├── tts-openai.js               # OpenAI TTS integration
-│   ├── stt-groq.js                 # Groq Whisper STT fallback
-│   ├── stt-soniox.js               # Soniox WebSocket STT fallback
-│   ├── kyma-client.js              # Kyma API — session, heartbeat, error parsing
-│   ├── providers.js                # Provider/mode/key registry
-│   ├── tier-recommendation.js      # Auto-tier selection logic
-│   ├── translation-bundle.js       # Translation bundle utilities
-│   ├── srt-export.js               # SRT + ZIP subtitle export
-│   ├── sniffer.js                  # Timedtext & caption track interceptor
-│   └── audio-processor.js          # PCM AudioWorklet for STT
-│
-├── lib/
-│   ├── audio-utils.js              # captureStream retry, downmix, WAV encode
-│   ├── browser-api.js              # Cross-browser API abstraction
-│   └── token-guard.js              # Page-level async token guard
-│
-├── tests/                          # 117 unit tests (Vitest)
-│   ├── helpers/
-│   │   ├── chrome-mock.mjs         # Chrome API mock for testing
-│   │   └── load-service.mjs        # Service loader helper
-│   └── *.test.mjs                  # Test files for each module
-│
-├── icons/                          # Extension icons (16, 48, 128px)
-├── store-assets/                   # Web Store metadata, screenshots, privacy policy
-├── docs/                           # Technical documentation
-├── scripts/                        # Build & check scripts
-└── .github/workflows/ci.yml        # GitHub Actions CI pipeline
-```
-
----
-
-## Testing
-
-```bash
-# Run all 117 unit tests
-npm test
-
-# Syntax check all JavaScript files
 npm run check:all
+npm test
 ```
 
-All tests run via [Vitest](https://vitest.dev/) with a custom Chrome API mock. No browser required.
+| 路径 | 作用 |
+| --- | --- |
+| `local-service/` | 本地 HTTP 服务、YouTube 音轨读取、整片处理与缓存。 |
+| `local-service/public/` | 粘贴视频链接的本地网页。 |
+| `popup.html`、`popup.js` | Chrome 扩展弹窗与设置。 |
+| `content.js`、`ui/` | YouTube 页面内的字幕、配音与操作面板。 |
+| `icons/` | Logo SVG 与 Chrome 所需的 PNG 图标。 |
+| `tests/` | 自动化测试。 |
 
----
+进一步阅读：[本地服务说明](local-service/README.md) · [参与开发](CONTRIBUTING.md) · [更新记录](CHANGELOG.md)。
 
-## Build a Release Zip
+## 许可证
 
-```bash
-# macOS / Linux
-./pack.sh
-# → ~/lumeo-v1.0.0.zip
-
-# Windows / PowerShell
-.\pack.ps1
-# → $HOME\lumeo-v1.0.0.zip
-```
-
-Reads the version from `manifest.json`, excludes dev files (`.git`, `node_modules`, `tests/`). Drop the zip into the Chrome Web Store Developer Console.
-
----
-
-## Permissions
-
-| Permission | Purpose |
-|---|---|
-| `activeTab`, `scripting` | Inject overlay into the YouTube tab |
-| `storage` | Persist settings and API keys locally |
-| `https://*.youtube.com/*` | Read captions and capture video audio |
-| `https://api.kymaapi.com/*` | Standard + Realtime tier gateway |
-| `https://api.openai.com/*` | Realtime P2P + OpenAI translation/TTS |
-| `https://generativelanguage.googleapis.com/*` | Gemini translation (BYOK) |
-| `https://openrouter.ai/*` | OpenRouter translation (BYOK) |
-| `https://api.groq.com/*` | Groq STT/translation (BYOK) |
-| `https://translate.googleapis.com/*` | Free Google Translate |
-| `https://texttospeech.googleapis.com/*` | Google Cloud TTS (BYOK) |
-| `https://stt-rt.soniox.com/*` | Soniox STT fallback (BYOK) |
-
----
-
-## Roadmap
-
-- [ ] Per-tab session log with live cost meter
-- [ ] Language warming on hover (sub-200ms switches)
-- [ ] Dictionary lookup on highlighted caption text
-- [ ] Auto-pick tier based on available captions
-- [ ] SRT/ZIP export across all tiers
-- [ ] Firefox MV3 port
-
----
-
-## Contributing
-
-PRs welcome on `main`. The codebase is **plain vanilla JS** — no build step, no framework dependencies.
-
-Before opening a PR:
-
-```bash
-npm test                    # All 117 tests must pass
-npm run check:all           # Syntax check
-```
-
-If you bump `manifest.json` version, also update `LUMEO_VERSION` in `content.js` and `EXPECTED_CONTENT_VERSION` in `background.js`.
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) • [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) • [`SECURITY.md`](./SECURITY.md)
-
----
-
-## License
-
-[MIT](./LICENSE) © 2026 Lumeo contributors.
-
-
+译幕基于 [Lumeo 原项目](https://github.com/ThanhNguyxnOrg/lumeo)改造，保留原项目的 Git 历史与版权声明。代码遵循 [MIT 许可证](LICENSE)；第三方服务名称及商标归各自所有者。

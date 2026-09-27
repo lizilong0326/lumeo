@@ -1,4 +1,4 @@
-// Lumeo OpenAI TTS service — used by the Caption tier (spoken playback of
+// 译幕 OpenAI TTS service — used by the Caption tier (spoken playback of
 // translated lines) and by the planned OpenAI direct Standard pipeline
 // (chunked dub without Kyma). Returns an audio element / blob so callers can
 // route the output through their own GainNode and volume controls.
@@ -22,7 +22,7 @@
 
   function assertKey(apiKey) {
     const key = String(apiKey || "").trim();
-    if (!key) throw new Error("OpenAI API key is missing.");
+    if (!key) throw new Error("缺少 OpenAI API 密钥。");
     return key;
   }
 
@@ -68,7 +68,7 @@
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       throw new Error(
-        `OpenAI TTS ${response.status}: ${String(detail).slice(0, 200)}`
+        `OpenAI 朗读出错（${response.status}）：${String(detail).slice(0, 200)}`
       );
     }
     const blob = await response.blob();

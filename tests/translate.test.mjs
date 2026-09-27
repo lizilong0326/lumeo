@@ -66,12 +66,12 @@ describe("services/translate.js", () => {
     expect(out).toEqual(["xin chào", "thế giới"]);
   });
 
-  it("calls OpenRouter with referer and title headers", async () => {
+  it("calls OpenRouter without attributing requests to another project", async () => {
     window.fetch = vi.fn(async (url, init) => {
       expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
       expect(init.headers.Authorization).toBe("Bearer sk-or-xyz");
-      expect(init.headers["HTTP-Referer"]).toContain("github.com");
-      expect(init.headers["X-Title"]).toBe("Lumeo");
+      expect(init.headers["HTTP-Referer"]).toBeUndefined();
+      expect(init.headers["X-Title"]).toBeUndefined();
       return fakeResponse({ choices: [{ message: { content: "[0] hi" } }] });
     });
     const out = await api.translateBatch(["hello"], "vi", {
@@ -79,6 +79,18 @@ describe("services/translate.js", () => {
       openRouterKey: "sk-or-xyz",
     });
     expect(out).toEqual(["hi"]);
+  });
+
+  it("uses MiniMax M3 with thinking disabled for subtitle translation", async () => {
+    window.fetch = vi.fn(async (url, init) => {
+      expect(url).toBe("https://api.minimax.cn/v1/chat/completions");
+      expect(init.headers.Authorization).toBe("Bearer mm-key");
+      const body = JSON.parse(init.body);
+      expect(body.model).toBe("MiniMax-M3");
+      expect(body.thinking.type).toBe("disabled");
+      return fakeResponse({ choices: [{ message: { content: "[0] 你好" } }] });
+    });
+    expect(await api.translateBatch(["hello"], "zh-CN", { provider: "minimax", minimaxKey: "mm-key" })).toEqual(["你好"]);
   });
 
   it("calls LibreTranslate against the configured URL", async () => {
@@ -96,7 +108,7 @@ describe("services/translate.js", () => {
   it("rejects when the API key is missing for a BYOK provider", async () => {
     await expect(
       api.translateBatch(["hello"], "vi", { provider: "gemini" }),
-    ).rejects.toThrow(/Gemini API key/);
+    ).rejects.toThrow(/Gemini API 密钥/);
   });
 
   it("propagates AbortError when the signal is already aborted", async () => {

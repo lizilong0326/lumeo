@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280" role="img" aria-labelledby="title desc">
-  <title id="title">Lumeo promo tile</title>
-  <desc id="desc">Bilingual captions and live AI dubbing for YouTube.</desc>
+  <title id="title">译幕宣传图</title>
+  <desc id="desc">YouTube 中文字幕与实时中文配音。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#101113"/>
@@ -33,13 +33,13 @@
     <path d="M10 12v10M17 8v18M24 12v10" fill="none" stroke="#101113" stroke-width="3" stroke-linecap="round"/>
   </g>
 
-  <text x="102" y="72" fill="#f2ede3" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.6">Lumeo</text>
-  <text x="102" y="96" fill="#7a7c82" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" letter-spacing="2">YOUTUBE CAPTIONS + AI DUB</text>
+  <text x="102" y="72" fill="#f2ede3" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.6">译幕</text>
+  <text x="102" y="96" fill="#7a7c82" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" letter-spacing="2">YOUTUBE 字幕 + 中文配音</text>
 
   <g transform="translate(58 126)">
     <rect width="184" height="58" rx="10" fill="#101113" stroke="#26292f"/>
-    <text x="16" y="24" fill="#ff6a1a" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" letter-spacing="1.6">CAPTION FREE</text>
-    <text x="16" y="44" fill="#f2ede3" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700">100+ languages</text>
+    <text x="16" y="24" fill="#ff6a1a" font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" letter-spacing="1.6">免费字幕</text>
+    <text x="16" y="44" fill="#f2ede3" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700">100 多种语言</text>
   </g>
 
   <g transform="translate(58 190)">
@@ -53,10 +53,10 @@
 
   <g transform="translate(266 126)">
     <rect width="82" height="26" rx="5" fill="#ff6a1a"/>
-    <text x="41" y="17" text-anchor="middle" fill="#101113" font-family="JetBrains Mono, ui-monospace, monospace" font-size="10" font-weight="800">REALTIME</text>
+    <text x="41" y="17" text-anchor="middle" fill="#101113" font-family="JetBrains Mono, ui-monospace, monospace" font-size="10" font-weight="800">国内配音</text>
     <rect x="0" y="34" width="82" height="26" rx="5" fill="#101113" stroke="#26292f"/>
-    <text x="41" y="51" text-anchor="middle" fill="#c9c3b6" font-family="JetBrains Mono, ui-monospace, monospace" font-size="10">&lt;1s dub</text>
+    <text x="41" y="51" text-anchor="middle" fill="#c9c3b6" font-family="JetBrains Mono, ui-monospace, monospace" font-size="10">低延迟配音</text>
   </g>
 
-  <text x="58" y="232" fill="#c9c3b6" font-family="Inter, system-ui, sans-serif" font-size="14">Bilingual subtitles. Live translated voice.</text>
+  <text x="58" y="232" fill="#c9c3b6" font-family="Inter, system-ui, sans-serif" font-size="14">双语字幕 · 实时中文配音</text>
 </svg>

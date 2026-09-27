@@ -4,6 +4,7 @@
   if (window.LumeoSonioxSTT?.__loaded) return;
 
   let active = false;
+  let paused = false;
   let stream = null;
   let audioCtx = null;
   let processor = null;
@@ -34,14 +35,14 @@
   async function start(options = {}) {
     if (active) return { ok: true, alreadyActive: true };
     const apiKey = String(options.apiKey || "").trim();
-    if (!apiKey) throw new Error("Soniox API key is missing.");
+    if (!apiKey) throw new Error("缺少 Soniox API 密钥。");
     callbacks = {
       status: options.onStatus,
       result: options.onResult,
       error: options.onError,
     };
 
-    emit("status", "Requesting tab audio permission");
+    emit("status", "正在请求标签页音频权限");
     stream = await navigator.mediaDevices.getDisplayMedia({
       audio: true,
       video: true,
@@ -50,11 +51,12 @@
     stream.getVideoTracks().forEach((track) => track.stop());
     if (!stream.getAudioTracks().length) {
       stop();
-      throw new Error('No audio track. Choose "Share tab audio" when prompted.');
+      throw new Error('没有音频轨道。请在提示出现时勾选“共享标签页音频”。');
     }
 
     active = true;
-    emit("status", "Connecting to Soniox");
+    paused = false;
+    emit("status", "正在连接 Soniox");
     chrome.runtime.sendMessage({
       action: "startSonioxWs",
       apiKey,
@@ -66,7 +68,7 @@
     await audioCtx.audioWorklet.addModule(chrome.runtime.getURL("services/audio-processor.js"));
     processor = new AudioWorkletNode(audioCtx, "pcm-processor");
     processor.port.onmessage = (event) => {
-      if (!active) return;
+      if (!active || paused) return;
       chrome.runtime.sendMessage({
         action: "sonioxAudio",
         samples: floatToPCM16(event.data),
@@ -78,12 +80,13 @@
     mute.gain.value = 0;
     processor.connect(mute);
     mute.connect(audioCtx.destination);
-    emit("status", "Listening");
+    emit("status", "正在识别语音");
     return { ok: true };
   }
 
   function stop() {
     active = false;
+    paused = false;
     try { processor?.disconnect(); } catch {}
     try { source?.disconnect(); } catch {}
     try { audioCtx?.close(); } catch {}
@@ -93,7 +96,19 @@
     audioCtx = null;
     stream = null;
     chrome.runtime.sendMessage({ action: "stopSonioxWs" }).catch(() => {});
-    emit("status", "Stopped");
+    emit("status", "已停止");
+  }
+
+  function pause() {
+    if (!active || paused) return;
+    paused = true;
+    void audioCtx?.suspend?.();
+  }
+
+  function resume() {
+    if (!active || !paused) return;
+    paused = false;
+    void audioCtx?.resume?.();
   }
 
   chrome.runtime.onMessage.addListener((message) => {
@@ -102,6 +117,7 @@
       emit("status", message.status);
     }
     if (message.action === "sonioxResult") {
+      if (paused) return;
       emit("result", message.data);
     }
     if (message.action === "sonioxError") {
@@ -113,6 +129,8 @@
   window.LumeoSonioxSTT = {
     __loaded: true,
     start,
+    pause,
+    resume,
     stop,
     isActive: () => active,
   };

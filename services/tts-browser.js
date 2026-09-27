@@ -59,6 +59,7 @@
 
   function stop() {
     try { speechSynthesis.cancel(); } catch {}
+    window.LumeoMiniMax?.stop?.();
     if (currentAudio) {
       currentAudio.pause();
       currentAudio = null;
@@ -69,7 +70,7 @@
     const clean = stripTtsNoise(text);
     if (!clean) return false;
     const voice = getVoiceByName(options.voiceName) || getVoicesForLang(lang)[0] || null;
-    if (!voice) throw new Error(`No browser voice found for ${lang}.`);
+    if (!voice) throw new Error(`没有找到适用于${lang}的浏览器语音。`);
     stop();
     const utterance = new SpeechSynthesisUtterance(clean);
     utterance.voice = voice;
@@ -85,7 +86,7 @@
     const clean = stripTtsNoise(text);
     if (!clean) return false;
     const apiKey = String(options.googleCloudKey || options.apiKey || "").trim();
-    if (!apiKey) throw new Error("Google Cloud Text-to-Speech API key is missing.");
+    if (!apiKey) throw new Error("缺少 Google Cloud 语音合成 API 密钥。");
     const languageCode = normalizeLang(lang);
     const voiceName = options.voiceName || "Achernar";
     const cacheKey = [
@@ -129,11 +130,21 @@
 
   async function speak(text, lang, options = {}) {
     const provider = options.provider || "browser";
+    if (provider === "minimax-tts") {
+      if (!window.LumeoMiniMax) throw new Error("MiniMax 语音服务未加载。");
+      return window.LumeoMiniMax.speak(text, {
+        apiKey: options.minimaxKey,
+        voice: options.minimaxVoice || "male-qn-qingse",
+        speed: options.rate || 1,
+        volume: options.volume ?? 1,
+        syncDuration: options.syncDuration,
+      });
+    }
     if (provider === "google-cloud") {
       return speakGoogleCloud(text, lang, options);
     }
     if (provider === "openai-tts") {
-      if (!window.LumeoOpenAITTS) throw new Error("OpenAI TTS service is not loaded.");
+      if (!window.LumeoOpenAITTS) throw new Error("OpenAI 朗读服务未加载。");
       return window.LumeoOpenAITTS.speak(text, lang, {
         apiKey: options.openaiKey,
         voice: options.openaiVoice || "alloy",

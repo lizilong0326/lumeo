@@ -18,9 +18,8 @@ describe("services/tier-recommendation.js", () => {
   it("recommends tiers with user-facing rationale", async () => {
     const api = await setup();
 
-    expect(api.recommendationFor({}, { tier: "caption" })).toContain("YouTube captions exist");
-    expect(api.recommendationFor({}, { tier: "caption", captionUnavailable: true })).toContain("no readable captions");
-    expect(api.recommendationFor({}, { tier: "standard" })).toContain("captions are missing");
-    expect(api.recommendationFor({ title: "Live podcast" }, { tier: "realtime" })).toContain("low latency");
+    expect(api.recommendationFor({}, { tier: "caption" })).toContain("MiniMax 大模型翻译并朗读");
+    expect(api.recommendationFor({}, { tier: "caption", captionUnavailable: true })).toContain("此视频没有可读字幕");
+    expect(api.recommendationFor({}, { tier: "standard" })).toContain("字幕缺失");
   });
 });

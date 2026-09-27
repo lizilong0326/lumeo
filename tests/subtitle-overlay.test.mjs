@@ -99,7 +99,7 @@ describe("ui/subtitle-overlay.js", () => {
     const words = overlay.querySelectorAll(".lumeo-lookup-word");
     expect(words).toHaveLength(4);
     expect(words[0].tagName).toBe("BUTTON");
-    expect(words[0].getAttribute("aria-label")).toBe("Inspect word Hello");
+    expect(words[0].getAttribute("aria-label")).toBe("查看词语 Hello");
     expect(words[0].dataset.lookupWord).toBe("Hello");
     expect(overlay.textContent).toContain("Hello, world!");
     expect(overlay.textContent).toContain("Source phrase");

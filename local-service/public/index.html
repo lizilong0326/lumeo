@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f7">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='29' fill='%23168dff'/%3E%3Cpath d='M41 30 64 56 87 30M64 56v23' fill='none' stroke='white' stroke-width='14' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ctext x='64' y='112' fill='white' text-anchor='middle' font-family='sans-serif' font-size='25' font-weight='700'%3E%E8%AF%91%E5%B9%95%3C/text%3E%3C/svg%3E">
+  <title>译幕 · 视频中文配音</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://www.youtube.com/iframe_api" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="brand" aria-label="译幕本地版">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 128 128"><path d="M41 30 64 56 87 30M64 56v23" fill="none" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/><text x="64" y="112" fill="white" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="700" letter-spacing="1">译幕</text></svg></span>
+      <span class="brand-name">译幕</span>
+      <span class="brand-edition">本地版</span>
+    </div>
+
+    <header class="intro">
+      <span class="eyebrow">YOUTUBE · 中文配音</span>
+      <h1>把视频，<br><span>听成中文。</span></h1>
+      <p>贴入链接，译幕会准备整片中文字幕和配音。准备时也能先看原视频。</p>
+    </header>
+
+    <form id="start-form" class="surface entry-card">
+      <div class="card-heading">
+        <span class="eyebrow">开始使用</span>
+        <h2>添加一个视频</h2>
+      </div>
+      <div class="field">
+        <label for="video-url">YouTube 视频链接</label>
+        <input id="video-url" type="url" inputmode="url" placeholder="粘贴视频链接" required>
+      </div>
+      <div class="field">
+        <label for="api-key">MiniMax API 密钥</label>
+        <input id="api-key" type="password" autocomplete="off" placeholder="输入密钥以开始处理">
+      </div>
+      <details class="settings">
+        <summary>更多设置 <span>音色与视频读取</span></summary>
+        <div class="settings-body">
+          <div class="field">
+            <label for="voice">中文音色 ID</label>
+            <input id="voice" value="male-qn-qingse">
+            <p class="field-note">可从 <a href="https://platform.minimax.cn/docs/faq/system-voice-id" target="_blank" rel="noopener noreferrer">MiniMax 官方音色列表</a>复制音色 ID。</p>
+          </div>
+          <label class="cookie-option" for="chrome-cookies">
+            <input id="chrome-cookies" type="checkbox">
+            <span>使用本机 Chrome 登录状态读取视频</span>
+          </label>
+          <p class="field-note">仅在 YouTube 要求验证时开启。开启后，yt-dlp 会读取 Chrome 的 Cookie，其中可能包含其他网站的登录会话。</p>
+        </div>
+      </details>
+      <button id="submit" class="primary-button" type="submit">准备中文配音 <span aria-hidden="true">→</span></button>
+      <p class="privacy-note">密钥只保存在本地服务的运行内存中；音频、待翻译文字和配音内容会发送至 MiniMax。</p>
+    </form>
+
+    <section id="workspace" class="workspace" hidden>
+      <div class="workspace-heading">
+        <div>
+          <span class="eyebrow">当前视频</span>
+          <h2 id="video-title">正在读取视频</h2>
+        </div>
+        <button id="change-video" class="text-button" type="button">添加视频</button>
+      </div>
+
+      <div class="status-line"><span class="status-indicator" aria-hidden="true"></span><p id="status" role="status" aria-live="polite">正在读取视频信息…</p></div>
+
+      <div id="preparation" class="surface preparation">
+        <div class="preparation-top"><span class="spinner" aria-hidden="true"></span><strong>正在准备整片中文配音</strong></div>
+        <p id="preparation-detail">读取视频中…</p>
+        <progress id="preparation-progress" max="100" value="0"></progress>
+        <button id="watch-original" class="quiet-button" type="button">先看原视频 <span aria-hidden="true">→</span></button>
+      </div>
+
+      <div id="ready-choice" class="surface ready-choice" hidden>
+        <div class="ready-copy">
+          <span class="ready-check" aria-hidden="true">✓</span>
+          <div><strong>整片中文配音已就绪</strong><p>从头播放，或接着当前进度观看。</p></div>
+        </div>
+        <div class="ready-actions">
+          <button id="play-from-start" class="primary-button" type="button">从头播放中文</button>
+          <button id="play-from-current" class="quiet-button" type="button">从当前位置播放</button>
+        </div>
+      </div>
+
+      <div class="recovery-actions">
+        <button id="retry-read" class="quiet-button" type="button" hidden>重新尝试读取</button>
+        <button id="skip-speech" class="quiet-button" type="button" hidden>跳过本句继续</button>
+      </div>
+      <button id="play" class="primary-button legacy-play" type="button" disabled hidden>从当前位置播放中文配音</button>
+
+      <div class="player-shell">
+        <div id="player"></div>
+        <div id="subtitle" aria-live="polite"></div>
+      </div>
+      <div class="player-actions">
+        <button id="preview" class="text-button" type="button" disabled>听原声</button>
+        <a id="original-link" target="_blank" rel="noopener noreferrer">在 YouTube 打开 <span aria-hidden="true">↗</span></a>
+      </div>
+      <p id="embed-help" class="field-note embed-help" hidden>如果此处无法播放，请在安装译幕扩展的 Chrome 中打开 YouTube 原页。</p>
+
+      <details id="segments-detail" class="segments-detail">
+        <summary><span>处理详情</span><span id="segments-summary">查看分段进度</span></summary>
+        <div id="segments" class="segments" aria-label="视频处理片段"></div>
+      </details>
+      <details id="task-tools" class="task-tools">
+        <summary>任务操作</summary>
+        <button id="stop" class="text-button danger-button" type="button">停止当前任务</button>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

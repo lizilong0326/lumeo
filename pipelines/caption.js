@@ -4,7 +4,7 @@
   if (window.LumeoCaptionPipeline?.__loaded) return;
 
   const DEFAULT_TRANSLATE_PROVIDER = "google-free";
-  const DEFAULT_TARGET_LANGUAGE = "vi";
+  const DEFAULT_TARGET_LANGUAGE = "zh-CN";
   const CACHE_LIMIT = 50;
   const CACHE_VERSION = 2;
   const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -111,21 +111,21 @@
   }
 
   function describeCaptionQuality(meta = {}) {
-    if (!meta) return "Unknown captions";
+    if (!meta) return "未知字幕";
     const tracks = Array.isArray(meta.tracks) ? meta.tracks : [];
     const sourceTrack = tracks.find((track) => track.languageCode === meta.sourceLanguage) || tracks[0];
     const source = meta.nativeTarget
-      ? "YouTube native"
+      ? "YouTube 原生字幕"
       : sourceTrack?.kind === "asr"
-        ? "Auto captions"
+        ? "自动生成字幕"
         : meta.sourceLanguage
-          ? "YouTube captions"
-          : "Unknown captions";
+          ? "YouTube 字幕"
+          : "未知字幕";
     const mode = meta.cached
-      ? "cached"
+      ? "已缓存"
       : meta.nativeTarget
-        ? "direct"
-        : "translated";
+        ? "直接使用"
+        : "已翻译";
     return `${source} · ${mode}`;
   }
 
@@ -135,27 +135,27 @@
     const tracksLabel = tracks.length
       ? tracks
           .slice(0, 6)
-          .map((t) => `${t.languageCode}${t.kind === "asr" ? " auto" : ""}`)
+          .map((t) => `${t.languageCode}${t.kind === "asr" ? " 自动生成" : ""}`)
           .join(", ")
       : "";
     if (reason === "no-tracks") {
-      return "YouTube did not expose any caption tracks for this video. The channel likely disabled subtitles and auto-captions.";
+      return "此视频没有提供字幕轨道，频道可能关闭了字幕和自动字幕。";
     }
     if (reason === "no-target-language") {
       return tracksLabel
-        ? `Found tracks (${tracksLabel}) but none in ${targetLanguageName}. Pick a language YouTube has, or use a fallback below.`
-        : `No caption track matches ${targetLanguageName}.`;
+        ? `已找到字幕轨道（${tracksLabel}），但没有${targetLanguageName}。请选择现有语言或下方备用方案。`
+        : `没有匹配${targetLanguageName}的字幕轨道。`;
     }
     if (reason === "timedtext-empty-body" || reason === "timedtext-fetch-failed") {
-      return `YouTube captions are temporarily unavailable${tracksLabel ? ` (tracks: ${tracksLabel})` : ""}. Open the YouTube CC button once, then Retry; if captions still fail, choose a fallback below.`;
+      return `YouTube 字幕暂不可用${tracksLabel ? `（轨道：${tracksLabel}）` : ""}。请点一次播放器的字幕按钮后重试；若仍失败，请选择下方备用方案。`;
     }
     if (reason === "timedtext-unparsable") {
-      return "YouTube captions downloaded but could not be read. Retry, or choose a fallback below.";
+      return "字幕已下载但无法读取，请重试或选择下方备用方案。";
     }
     if (reason === "no-video-id") {
-      return "Open a /watch?v= page to use Caption Free.";
+      return "请打开 YouTube 视频播放页后使用免费字幕。";
     }
-    return "Could not load YouTube captions for this video.";
+    return "无法加载此视频的 YouTube 字幕。";
   }
 
   class CaptionPipeline {
@@ -164,12 +164,14 @@
       this.abortController = null;
       this.cues = [];
       this.meta = null;
+      this.backgroundTranslation = null;
     }
 
     stop() {
       this.token += 1;
       this.abortController?.abort();
       this.abortController = null;
+      this.backgroundTranslation = null;
       window.LumeoTTS?.stop?.();
       window.LumeoSonioxSTT?.stop?.();
     }
@@ -216,15 +218,15 @@
         let completed = resumable ? countTranslated(cues) : 0;
         options.onProgress?.({ phase: resumable ? "resuming" : "translating", completed, total });
         const batchSize = Math.max(1, Number(options.batchSize || 40));
-        for (let start = 0; start < cues.length; start += batchSize) {
+        const translateRange = async (start, end) => {
           const batchIndexes = [];
           const sourceTexts = [];
-          for (let index = start; index < Math.min(start + batchSize, cues.length); index += 1) {
+          for (let index = start; index < end; index += 1) {
             if (cues[index]?.translated) continue;
             batchIndexes.push(index);
             sourceTexts.push(cues[index].text);
           }
-          if (!sourceTexts.length) continue;
+          if (!sourceTexts.length) return;
           const translated = await window.LumeoTranslate.translateBatch(
             sourceTexts,
             targetLanguage,
@@ -237,18 +239,48 @@
           );
           withAbortError(signal);
           if (token !== this.token) return { ok: false, error: "stale" };
-          cues = cues.map((cue, index) => {
-            const translatedIndex = batchIndexes.indexOf(index);
-            return translatedIndex >= 0
-              ? { ...cue, translated: translated[translatedIndex] || cue.text }
-              : cue;
+          batchIndexes.forEach((index, translatedIndex) => {
+            cues[index] = { ...cues[index], translated: translated[translatedIndex] || cues[index].text };
           });
           completed = countTranslated(cues);
+          this.cues = cues;
+          this.meta = progressMeta({ ...subtitles, provider, cached: false }, completed, total);
           await setCachedResult(key, {
             cues,
-            meta: progressMeta({ ...subtitles, provider, cached: false }, completed, total),
+            meta: this.meta,
           });
+          options.onCueUpdate?.({ start, end, cues });
           options.onProgress?.({ phase: completed === total ? "translated" : "translating", completed, total });
+        };
+
+        if (options.progressive) {
+          const playhead = Math.max(0, Number(options.playheadSeconds || 0));
+          const firstIndex = Math.max(0, cues.findIndex((cue) => cue.end > playhead));
+          const firstEnd = Math.min(firstIndex + Math.min(batchSize, 12), total);
+          await translateRange(firstIndex, firstEnd);
+          this.cues = cues;
+          this.meta = progressMeta({ ...subtitles, provider, cached: false }, completed, total);
+          const ranges = [];
+          for (let start = firstEnd; start < total; start += batchSize) {
+            ranges.push([start, Math.min(start + batchSize, total)]);
+          }
+          for (let start = 0; start < firstIndex; start += batchSize) {
+            ranges.push([start, Math.min(start + batchSize, firstIndex)]);
+          }
+          this.backgroundTranslation = (async () => {
+            for (const [start, end] of ranges) {
+              withAbortError(signal);
+              if (token !== this.token) return;
+              await translateRange(start, end);
+            }
+          })().catch((error) => {
+            if (error?.name !== "AbortError" && token === this.token) options.onBackgroundError?.(error);
+          });
+          return { ok: true, cues: this.cues, meta: this.meta };
+        }
+
+        for (let start = 0; start < total; start += batchSize) {
+          await translateRange(start, Math.min(start + batchSize, total));
         }
       }
 
@@ -292,14 +324,14 @@
       return window.LumeoTTS.speak(
         cue.translated,
         options.targetLanguage || DEFAULT_TARGET_LANGUAGE,
-        { ...options, volume: options.volume ?? 1 },
+        { ...options, syncDuration: options.syncDuration ?? Math.max(0.3, Number(cue.end) - Number(cue.start)), volume: options.volume ?? 1 },
       );
     }
 
     exportZip(title = "video") {
       const blob = window.LumeoSrtExport.makeSubtitleZip(this.cues, title);
       const safeTitle = window.LumeoSrtExport.sanitizeFilename(title);
-      window.LumeoSrtExport.downloadBlob(blob, `${safeTitle}_lumeo_subtitles.zip`);
+      window.LumeoSrtExport.downloadBlob(blob, `${safeTitle}_yimu_subtitles.zip`);
     }
   }
 

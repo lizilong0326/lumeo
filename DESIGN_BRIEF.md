@@ -1,10 +1,10 @@
-# Lumeo Design Brief
+# 译幕 Design Brief
 
-This replaces the inherited Echoly visual direction. The old orange glass panel is functional but not the final product look.
+> Historical visual design ideas. The live dubbing tiers and some screens below are no longer current product features. See [README](README.md) for the current interface and setup.
 
 ## Product Positioning
 
-Lumeo is a YouTube companion for:
+译幕 is a YouTube companion for:
 
 - bilingual subtitle reading
 - AI translation
@@ -42,7 +42,7 @@ Target dimensions:
 Sections:
 
 1. Header
-   - Lumeo wordmark
+   - 译幕 wordmark
    - small status pill: Idle / Connecting / Live / Paused / Error
    - compact latency/cost hint when tier is Standard or Realtime
 
@@ -144,10 +144,10 @@ Effects:
 Use this prompt in any design assistant or UI mockup tool. Export frames as PNG plus a share link, then send it back for implementation.
 
 ```text
-Design a premium Chrome extension UI for "Lumeo", a YouTube companion that provides bilingual captions and live AI dubbing.
+Design a premium Chrome extension UI for "译幕", a YouTube companion that provides bilingual captions and live AI dubbing.
 
 Brand:
-- Name: Lumeo
+- Name: 译幕
 - Tagline: Bilingual captions and live AI dubbing for YouTube
 - Personality: cinematic, precise, premium, fast, trustworthy
 - Avoid: generic SaaS dashboard, playful cartoon style, emoji icons, old orange glassmorphism
@@ -165,7 +165,7 @@ Style:
 Create these frames:
 
 1. Browser popup, idle state, 420x620
-- Header with Lumeo wordmark and status pill "Ready"
+- Header with 译幕 wordmark and status pill "Ready"
 - Three tier cards: Caption Free, Standard Dub, Realtime Dub
 - Each tier shows latency, cost, and best-for microcopy
 - Target language select
@@ -183,7 +183,7 @@ Create these frames:
 - Bottom CTA: Stop
 
 3. In-page YouTube overlay, Caption mode, 720x360
-- Draggable toolbar with Lumeo wordmark, tier badge "Caption Free", language picker, export button, close/minimize
+- Draggable toolbar with 译幕 wordmark, tier badge "Caption Free", language picker, export button, close/minimize
 - Main bilingual subtitle area: smaller source line above, larger translated line below
 - Right transcript side panel with timed rows and active row highlighted
 - Include a small style-control button

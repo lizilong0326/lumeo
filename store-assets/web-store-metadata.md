@@ -1,210 +1,40 @@
-# Lumeo — Chrome Web Store submission metadata
+# 译幕 — Chrome 应用商店文案草稿
 
-> **Status:** v2.0 draft for reviewer approval. Re-validate string lengths, hosted privacy URL, screenshots, pricing, and any permission changes before submission. Lengths checked against current limits (description 16,000; short description 132).
+此文档是未来提交 Chrome 应用商店的文案草稿，**不是当前已上架说明**。目前仅从 GitHub 源码加载扩展，且必须由用户在本机安装并保持本地服务运行。提交商店前需重新核对字段限制、实际功能、权限、截图、隐私说明和服务价格，并解决本地服务的安装与分发。
 
----
+## 名称
 
-## Name (50 char max)
+译幕 — YouTube 中文字幕与中文配音
 
-```
-Lumeo — YouTube AI Captions & Dub
-```
+## 简短介绍
 
-## Short description (132 char max)
+为 YouTube 视频准备整片中文字幕和中文配音，并跟随视频进度播放。
 
-```
-Bilingual captions in 100+ languages and live AI dubbing for YouTube. Free Caption tier; Standard + Realtime dub on your own Kyma key.
-```
+## 详细介绍
 
-## Category
+译幕优先读取视频已有字幕；没有可读取字幕时，由本地服务下载音轨并调用 MiniMax 识别。取得整片字幕后，译幕将其翻译成简体中文、合成配音，准备完成后才开放中文播放。用户可选择从头或从当前进度播放，并可在准备期间先看原视频。
 
-`Productivity` — primary. (Accessibility is also valid; pick whichever you think gets better discovery for your audience.)
+使用时需要运行本地服务，并由用户提供自己的 MiniMax API Key；识别、翻译和配音可能产生费用。部分视频受 YouTube 的读取或嵌入限制，无法保证处理成功。
 
-## Language
+## 单一用途
 
-`English (United States)` — UI is English. Vietnamese localization can be added later as a localized listing.
+读取当前 YouTube 视频的字幕；必要时通过本地服务读取音轨，生成简体中文字幕与配音并跟随视频播放。
 
-## Long description (16,000 char max — using ~1,800)
+## 权限说明
 
-```
-Lumeo is the all-in-one YouTube translation extension. Three tiers, you pick what fits the moment.
+- `activeTab` 与 `scripting`：用户点击开始后，在当前 YouTube 标签页加载控件。
+- `storage`：在本地保存设置、密钥与字幕缓存。
+- YouTube 站点访问：读取当前视频与字幕，显示翻译结果。
+- 本机 `127.0.0.1` 访问：与用户自行启动的本地服务通信。
+- 第三方服务站点访问：历史代码仍保留部分备用服务权限。正式提交前需按实际启用的功能逐项清理并说明。
 
-Why Lumeo is different
-• Free Caption tier — translate YouTube's existing subtitles into 100+ languages with bilingual on-screen lines, a clickable side panel that scrolls with the video, and optional text-to-speech. No account, no API key required.
-• Standard Dub tier — when a video has no usable captions, capture the audio, run Whisper → Gemini → MiniMax through Kyma, and play a ~5-second-lag dub in 13 target languages over the original. Roughly $0.25 per 10 minutes on your own Kyma balance.
-• Realtime Dub tier — sub-second lag, peer-to-peer WebRTC to OpenAI Realtime via a Kyma-minted ephemeral token. Optionally clones the speaker's voice. Roughly $0.46 per 10 minutes.
+第三方站点清单以 `manifest.json` 为准。正式提交时，每项权限用途需要按商店表单分别填写。
 
-Pick a tier per video. Start free. Pay only when you want voice dubbing.
+## 审核测试建议
 
-Captions tier in detail
-• 100+ target languages via Google Translate (free) or your own Gemini / OpenRouter / Groq / OpenAI / Google Cloud / LibreTranslate key for higher quality or model choice.
-• Bilingual subtitle overlay with full style control — font, size, color, background, stroke, opacity.
-• Side panel listing every line in the video; click any line to seek the player to that moment.
-• Optional TTS playback on each translated line: speech synthesis (free, browser-native voices) or Google Cloud Chirp3-HD voices (your key).
-• Soniox STT fallback when a video has no captions and you want a free, no-Kyma alternative.
-• Native bilingual mode: when YouTube already publishes a translation track in your target language, Lumeo uses that directly — zero translation cost.
-• SRT + ZIP export of every translated transcript.
+1. 安装扩展并固定工具栏图标。
+2. 在本机安装并启动配套服务，确认 `http://127.0.0.1:8791/api/health` 可访问。
+3. 打开带英文字幕的 YouTube 视频，在扩展弹窗填写有效的 MiniMax 密钥并点击“开始准备整片”。
+4. 等待准备完成，再检查中文字幕、配音与暂停/拖动后的同步。不要在商店文案中公开密钥。
 
-Standard and Realtime dub
-• 13 target languages: English, Vietnamese, Japanese, Korean, Chinese, French, Spanish, German, Portuguese, Hindi, Indonesian, Italian, Russian.
-• Independent volume sliders for the original audio and the dub. Voice amplification up to 2× via Web Audio.
-• In-page panel you can drag, resize, and hide. Layout persists per-tab.
-• Translation history scrolling.
-• Pause/play YouTube and the dub follows instantly. No reconnect.
-• 60-minute hard auto-stop with a 5-minute warning.
-• Sessions end cleanly when the tab closes — no surprise charges.
-
-Privacy
-• No account, no telemetry, no analytics, no Lumeo-operated server.
-• Any API key you save (Kyma, Gemini, OpenRouter, Groq, Hugging Face, OpenAI, Google Cloud, LibreTranslate, Soniox) stays on your device with TRUSTED_CONTEXTS access level so page scripts can't read it.
-• Audio and subtitle text are sent only to the provider you pick to produce the requested translation. Provider retention follows that provider's terms.
-
-Get a Kyma key (only needed for Standard + Realtime tiers): kymaapi.com — free starter credit on signup; pay-as-you-go after that.
-```
-
-## Single purpose statement (mandatory)
-
-```
-Lumeo translates the captions or audio of the YouTube video on the active tab into a language the user picks, and presents the translation as on-screen bilingual subtitles, optional spoken TTS, or a live AI voice-over depending on the tier the user selects. That is its sole purpose.
-```
-
-## Permission justifications (each ≤ 1,000 char; reviewers read these closely)
-
-### `activeTab`
-```
-Used so that when the user clicks the Lumeo toolbar icon and presses Start, the extension can run a content script on the YouTube tab they are looking at. We do not act on tabs the user has not explicitly invoked us on.
-```
-
-### `scripting`
-```
-Used by the background service worker to inject the content script into a YouTube tab that already existed before the extension was installed or reloaded. Without this, Start would only work after a tab refresh. We inject only into tabs whose URL is on youtube.com (verified before injection) and only after the user clicks Start.
-```
-
-### `storage`
-```
-Used to remember the user's settings (tier, target language, voice, volume, subtitle style) and any optional API keys (Kyma, Gemini, OpenRouter, Groq, Hugging Face, OpenAI, Google Cloud, LibreTranslate, Soniox) across sessions. Keys are stored at TRUSTED_CONTEXTS access level so that page scripts on youtube.com cannot read them. We do not store any video, audio, transcript, or browsing history.
-```
-
-### `host_permissions: https://*.youtube.com/*` and `https://youtube.com/*`
-```
-Required to read existing YouTube subtitle tracks (Caption tier) and to capture audio of the video the user is watching via HTMLMediaElement.captureStream() (Standard + Realtime tiers), and to render the translation overlay panel on the page. We never modify YouTube content, never read user account data, and never make requests to YouTube's API.
-```
-
-### `host_permissions: https://api.kymaapi.com/*`
-```
-Required by the Standard and Realtime tiers to send audio to the Kyma API gateway for transcription, translation, and text-to-speech. The user's Kyma API key authenticates each request. Kyma is the user's own paid account; the extension does not proxy through any Lumeo-operated server.
-```
-
-### `host_permissions: https://api.openai.com/*`
-```
-Required only when the user picks the Realtime dub tier (peer-to-peer WebRTC after Kyma mints an ephemeral token, so audio is processed end-to-end with sub-second latency) or the OpenAI Chat Completions translate option in the Caption tier (when the user supplies their own OpenAI key). The Kyma key is never sent to OpenAI; only the ephemeral token or the user's OpenAI key is.
-```
-
-### `host_permissions: https://generativelanguage.googleapis.com/*`
-```
-Caption tier — used only when the user supplies their own Gemini API key and explicitly picks Gemini as the translation provider.
-```
-
-### `host_permissions: https://openrouter.ai/*`
-```
-Caption tier — used only when the user supplies their own OpenRouter key and picks OpenRouter as the translation provider, including OpenRouter's free model router when available.
-```
-
-### `host_permissions: https://api.groq.com/*`
-```
-Caption tier — used only when the user supplies their own Groq key and picks Groq translation or STT options.
-```
-
-### `host_permissions: https://api-inference.huggingface.co/*` and `https://huggingface.co/*`
-```
-Caption tier — reserved for the advanced Hugging Face Inference Providers option. It is used only when the user supplies a Hugging Face token and explicitly selects that provider.
-```
-
-### `host_permissions: https://translate.googleapis.com/*`
-```
-Caption tier — used as the default free translation provider for translating YouTube subtitle text into the user's chosen target language. No authentication required; the public endpoint is what Google Translate's web UI itself uses.
-```
-
-### `host_permissions: https://translation.googleapis.com/*`
-```
-Caption tier — used only when the user supplies their own Google Cloud Translation API key and explicitly picks the Google Cloud option for higher quality and rate limits.
-```
-
-### `host_permissions: https://texttospeech.googleapis.com/*`
-```
-Caption tier — used only when the user supplies their own Google Cloud Text-to-Speech API key and picks the Google Cloud TTS option for premium Chirp3-HD voices on each translated subtitle line.
-```
-
-### `host_permissions: https://stt-rt.soniox.com/*`
-```
-Caption tier — used only when the user supplies their own Soniox API key as a fallback for videos that have no usable captions. With the user's permission, Lumeo captures shared tab audio via getDisplayMedia and streams 16 kHz PCM samples to Soniox's real-time STT WebSocket for transcription.
-```
-
-### `host_permissions: https://libretranslate.com/*`, `http://localhost/*`, and `http://127.0.0.1/*`
-```
-Caption tier — used only when the user chooses LibreTranslate. The user can use the managed LibreTranslate endpoint or a self-hosted local endpoint such as localhost:5000.
-```
-
-## Data usage disclosures (Web Store form checkboxes)
-
-When the form asks "Does this extension collect or use any user data?":
-
-- ✅ Yes (because audio/text is processed by third-party providers under the user's account)
-
-When asked "What types of user data?":
-
-- Personally identifiable information → **NO**
-- Health information → **NO**
-- Financial and payment information → **NO**
-- Authentication information → **YES** (the user's Kyma / Gemini / OpenRouter / Groq / Hugging Face / OpenAI / Google Cloud / LibreTranslate / Soniox API keys, stored locally, sent only to the corresponding provider)
-- Personal communications → **NO**
-- Location → **NO**
-- Web history → **NO**
-- User activity → **YES** (subtitle text or audio of the video the user is currently watching is sent to AI providers for the purpose of translation, then discarded)
-- Website content → **NO**
-
-When asked "How is the data used?":
-
-- ✅ Authenticating the user (the API keys)
-- ✅ Providing the core feature of the extension (the translation)
-
-Required certifications:
-
-- ✅ I do not sell or transfer user data to third parties, outside the approved use cases.
-- ✅ I do not use or transfer user data for purposes that are unrelated to my item's single purpose.
-- ✅ I do not use or transfer user data to determine creditworthiness or for lending purposes.
-
-## Privacy policy URL
-
-Host `docs/privacy.html` or `store-assets/privacy-policy.html` somewhere stable. Suggested: a static GitHub Pages site at `https://thanhnguyxnorg.github.io/lumeo/privacy.html` or a Vercel project.
-
-Once hosted, paste the URL into the Web Store form's "Privacy policy" field.
-
-## Audit references
-
-- `store-assets/audits/permission-audit.md`
-- `store-assets/audits/source-asset-audit.md`
-- `store-assets/packaging-checklist.md`
-
-## Test instructions for reviewer (under "Account" tab in the form)
-
-```
-Lumeo has three tiers. The Caption tier requires no account and works out of the box on any YouTube video with captions; please test that first:
-
-1. Install the unpacked extension and pin the Lumeo icon.
-2. Open any English YouTube video that has captions (e.g., a TED talk).
-3. Click the Lumeo icon, leave tier on "Caption · Free", target language Vietnamese, press Start.
-4. Within ~3 seconds the bilingual subtitle overlay and the side panel should populate.
-
-For the Standard / Realtime dub tiers, a Kyma API key is required:
-
-5. Sign up for a free account at https://kymaapi.com (free starter credit included).
-6. Copy the API key from the dashboard, paste into the Lumeo popup.
-7. Switch tier to "Realtime", press Start. Within ~2 seconds the dub should begin.
-
-If you'd prefer a pre-loaded test key, please open an issue at the project's GitHub repo and we'll provide one for the duration of the review.
-```
-
-## Visibility
-
-`Public` (after approval). Submit for review when all fields are green and final screenshots are captured per `screenshots-guide.md`.
+隐私说明见 `privacy-policy.html`；许可证见项目根目录的 `LICENSE`。
