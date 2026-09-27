@@ -1,6 +1,6 @@
 <p align="center"><img src="./icons/icon-128.png" alt="译幕 Logo" width="96" height="96"></p>
 
-<h1 align="center">译幕</h1>
+<h1 align="center">译幕（Yimu）</h1>
 
 <p align="center">让 YouTube 视频先拥有完整中文字幕和中文配音，再跟随视频进度播放。</p>
 
